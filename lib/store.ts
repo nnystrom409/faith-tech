@@ -222,3 +222,15 @@ export async function putRecord<T>(bucket: string, id: string, data: T) {
   if (storeKind === "memory") return;
   await redis(["HSET", P + bucket, id, JSON.stringify(data)]);
 }
+
+// Records in a bucket whose id starts with prefix (e.g. one church's readiness items).
+export async function listRecords<T>(bucket: string, prefix: string): Promise<T[]> {
+  const fromMem = () => [...memRecords.entries()].filter(([k]) => k.startsWith(`${bucket}:${prefix}`)).map(([, v]) => v as T);
+  if (storeKind === "supabase")
+    return viaSb(async () => (await sb<{ data: T }[]>(`ft_records?bucket=eq.${bucket}&id=like.${encodeURIComponent(prefix)}*&select=data`)).map((r) => r.data), fromMem);
+  if (storeKind === "memory") return fromMem();
+  const all = ((await redis(["HGETALL", P + bucket])) as string[]) ?? [];
+  const out: T[] = [];
+  for (let i = 0; i < all.length; i += 2) if (all[i].startsWith(prefix)) out.push(JSON.parse(all[i + 1]) as T);
+  return out;
+}

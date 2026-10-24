@@ -11,7 +11,7 @@ export default function PackHome() {
     <Shell>
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <p className="pk-k">Welcome back</p>
-        <h1>Pastor Ramon</h1>
+        <h1>Pastor Pablo</h1>
       </div>
 
       <div className="pk-card dark">

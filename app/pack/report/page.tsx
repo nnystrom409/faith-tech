@@ -6,7 +6,7 @@ const FOLLOW = [
   { name: "Joy A.", note: "Liza · new believers' class Sunday", ok: true },
   { name: "Marco B.", note: "Jun · home visit set", ok: true },
   { name: "Rosa C.", note: "Hope Chapel · Pastor Ellen", ok: true },
-  { name: "Danilo P.", note: "Ramon · called twice", ok: true },
+  { name: "Danilo P.", note: "Pablo · called twice", ok: true },
   { name: "Mae S.", note: "No follow-up contact yet", ok: false, pill: "Needs owner" },
   { name: "Leo V.", note: "Message sent, no reply", ok: false, pill: "Awaiting" },
 ];
