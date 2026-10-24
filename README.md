@@ -19,7 +19,7 @@ A chat bot (live on Telegram) that walks a pastor through opt-in, language choic
 - Video walkthrough: _link added after recording_
 - **Try it in 60 seconds:**
   1. Open the bot link and send `Hi`. Tap **English** (or **Español**), then **Yes, send updates**, then **Register my church**.
-  2. Send one message like `I'm Pastor Ramon from Grace Fellowship in Tacloban` and confirm.
+  2. Send one message like `I'm Pastor Pablo from Grace Fellowship in Tacloban` and confirm.
   3. Send `12 baptisms` and confirm. Watch it appear on the dashboard.
   4. Try `twelve thousand`, `-3` or `abc` to see validation, send the same count twice to see duplicate handling, and send `STOP` to opt out (`START` to come back).
 

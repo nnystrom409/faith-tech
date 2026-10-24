@@ -98,7 +98,7 @@ const S = {
     findAgain: "Search another city",
     findDone: (c: string) => `Wonderful! 🙏 I've passed your interest to the organizers for ${c}, and they'll connect you with the church here. Your details are only shared with them.`,
     organizer: "An organizer will message you here shortly. 🙏 In the meantime you can tap \"Register my church\".",
-    intro: "Great! In one message, tell me your church's name, your name, and your town or city.\n\nFor example: I'm Pastor Ramon from Grace Fellowship in Tacloban",
+    intro: "Great! In one message, tell me your church's name, your name, and your town or city.\n\nFor example: I'm Pastor Pablo from Grace Fellowship in Tacloban",
     askChurch: "Thanks! What is your church's name?",
     askCity: (c: string) => `What town or city is ${c} in?`,
     askLeader: "And what is your name?",
