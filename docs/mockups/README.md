@@ -8,7 +8,7 @@ Static iPhone chat mockups of the flow in [the build brief](../build-brief.md). 
 
 ## Full onboarding flow (English)
 
-Pastor Ramon Dela Cruz, Grace Fellowship Tacloban, Philippines.
+Pastor Pablo Dela Cruz, Grace Fellowship Tacloban, Philippines.
 
 | E1 · First text, language, opt-in | E2 · Register the church | E3 · Confirm details | E4 · Approved, welcome pack, team invite |
 |---|---|---|---|
