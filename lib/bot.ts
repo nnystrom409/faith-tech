@@ -669,7 +669,8 @@ export const churchUrl = (c: Church) =>
   `${ORG.baseUrl}/church/${c.id}?${new URLSearchParams({ n: c.name, c: c.city, l: c.leader })}`;
 
 const ORG = {
-  baseUrl: "https://faith-tech-gold.vercel.app",
+  // Set PUBLIC_BASE_URL on another domain so church pages open on the deployment that stores them.
+  baseUrl: process.env.PUBLIC_BASE_URL || "https://faith-tech-gold.vercel.app",
   packUrl: "https://faith-tech-gold.vercel.app/starter-pack",
   guideUrl: "https://faith-tech-gold.vercel.app/discipleship-guide",
   videoSummary:

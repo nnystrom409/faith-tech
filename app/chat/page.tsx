@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-type Msg = { from: "me" | "bot"; text: string; buttons?: string[] };
+type Msg = { from: "me" | "bot"; text: string; buttons?: string[]; link?: { label: string; url: string } };
 
 export default function Chat() {
   const [id, setId] = useState("");
@@ -22,7 +22,7 @@ export default function Chat() {
     setMsgs((m) => [...m, { from: "me", text: t }]);
     setText("");
     const r = await fetch("/api/simulate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, text: t }) });
-    const d = (await r.json()) as { replies: { text: string; buttons?: string[] }[] };
+    const d = (await r.json()) as { replies: Omit<Msg, "from">[] };
     setMsgs((m) => [...m, ...d.replies.map((x) => ({ from: "bot" as const, ...x }))]);
   }
 
@@ -33,7 +33,12 @@ export default function Chat() {
       <p className="sub">Same bot as Telegram, in the browser. <a href="/">Dashboard</a></p>
       <div className="chat">
         {msgs.length === 0 && <div className="bubble bot">Say hi to start.</div>}
-        {msgs.map((m, i) => <div key={i} className={`bubble ${m.from}`}>{m.text}</div>)}
+        {msgs.map((m, i) => (
+          <div key={i} className={`bubble ${m.from}`}>
+            {m.text}
+            {m.link && <div><a href={m.link.url}>{m.link.label} →</a></div>}
+          </div>
+        ))}
         {last?.from === "bot" && last.buttons && (
           <div className="btns">{last.buttons.map((b) => <button key={b} onClick={() => send(b)}>{b}</button>)}</div>
         )}
