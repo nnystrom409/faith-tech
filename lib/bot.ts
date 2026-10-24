@@ -1,52 +1,191 @@
-// Channel-agnostic conversation logic. Each adapter (Telegram today,
-// WhatsApp/SMS later) turns an inbound message into handle(channel, id, text)
-// and sends back the replies. The code, not a model, decides what is saved.
-import { getUser, saveUser, listChurches, getChurch, log, type User, type Church } from "./store";
+// Channel-agnostic conversation logic, following docs/mockups (E1–E7, S1–S4).
+// Each adapter (Telegram today, WhatsApp/SMS later) turns an inbound message
+// into handle(channel, id, text) and sends back the replies. Buttons are plain
+// words, so typing the answer works the same as tapping it. The code, not a
+// model, decides what is saved.
+import { getUser, saveUser, listChurches, getChurch, log, type User, type Church, type Lang, type Draft } from "./store";
 import { registerChurch, saveCount } from "./baptize";
 
 export type Reply = { text: string; buttons?: string[] };
 
 export const MAX_COUNT = 10_000;
+const DUPE_WINDOW_MS = 60 * 60 * 1000;
 
 const WORDS: Record<string, number> = {
   zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-  eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17,
-  eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, hundred: 100,
+  eleven: 11, twelve: 12, twenty: 20, thirty: 30, forty: 40, fifty: 50, hundred: 100,
   cero: 0, uno: 1, una: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8,
   nueve: 9, diez: 10, once: 11, doce: 12, veinte: 20, treinta: 30, cuarenta: 40, cincuenta: 50, cien: 100,
 };
 
-export type CountResult = { ok: true; value: number } | { ok: false; error: string };
+export type CountResult = { ok: true; value: number } | { ok: false; error: "none" | "negative" | "decimal" | "too_big"; value?: number };
 
+// Finds the count in free text like "14 bautismos hoy, gloria a Dios!".
 export function parseCount(input: string): CountResult {
-  const t = input.trim().toLowerCase().replace(/[,_\s](?=\d{3}\b)/g, "");
-  if (/^-\s*\d/.test(t)) return { ok: false, error: "A baptism count can't be negative. Please send a whole number from 0 to 10,000." };
-  if (/^\d+[.]\d+$/.test(t)) return { ok: false, error: "Please send a whole number, like 12." };
+  const t = input.trim().toLowerCase().replace(/(\d)[,\s](?=\d{3}\b)/g, "$1");
+  if (/(^|\s)-\s*\d/.test(t)) return { ok: false, error: "negative" };
+  if (/\d+[.,]\d+/.test(t)) return { ok: false, error: "decimal" };
+  const digits = t.match(/\d+/g);
   let n: number | undefined;
-  if (/^\d+$/.test(t)) n = Number(t);
-  else if (t in WORDS) n = WORDS[t];
-  if (n === undefined) return { ok: false, error: "I didn't catch a number there. How many people were baptized? Reply with a number, like 12." };
-  if (n > MAX_COUNT) return { ok: false, error: `${n.toLocaleString("en-US")} is more than one church can report (max 10,000). Please check the number and send it again.` };
+  if (digits) {
+    if (digits.length > 1) return { ok: false, error: "none" };
+    n = Number(digits[0]);
+  } else {
+    const word = t.split(/[^a-záéíóúñ]+/).find((w) => w in WORDS);
+    if (word !== undefined) n = WORDS[word];
+  }
+  if (n === undefined) return { ok: false, error: "none" };
+  if (n > MAX_COUNT) return { ok: false, error: "too_big", value: n };
   return { ok: true, value: n };
 }
 
-const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9áéíóúñü]+/g, " ").trim();
-const YES = /^(yes|y|si|sí|ok|confirm|yes ✅|✅ yes)$/i;
-const NO = /^(no|n|edit|✏️ edit|no ❌)$/i;
+// "I'm Pastor Ramon Dela Cruz from Grace Fellowship in Tacloban"
+// "hola soy el pastor Rubén Quispe, mi iglesia es Luz del Valle en Cusco"
+// "Grace Fellowship, Ramon Dela Cruz, Tacloban"
+export function parseIntro(input: string): Draft {
+  const t = input.trim().replace(/[.!]+$/, "");
+  const clean = (s?: string) => s?.trim().replace(/^[,\s]+|[,\s]+$/g, "");
+  const pastor = (s?: string) => {
+    const v = clean(s) ?? "";
+    const titled = /^(el |la )?pastor(a)? /i.test(v);
+    return { leader: v.replace(/^(el |la )?pastor(a)? /i, "").trim() || undefined, pastorTitle: titled };
+  };
+  let m = t.match(/(?:i'?m|i am|this is|my name is)\s+(.+?)\s+(?:from|at|of)\s+(.+?)\s+in\s+(.+)$/i);
+  if (m) return { ...pastor(m[1]), church: clean(m[2]), city: clean(m[3]) };
+  m = t.match(/soy\s+(.+?)[,.]?\s+(?:y\s+)?(?:mi iglesia es|de la iglesia|pastoreo)\s+(.+?)\s+en\s+(.+)$/i);
+  if (m) return { ...pastor(m[1]), church: clean(m[2]), city: clean(m[3]) };
+  m = t.match(/soy\s+(.+?)\s+de\s+(.+?)\s+en\s+(.+)$/i);
+  if (m) return { ...pastor(m[1]), church: clean(m[2]), city: clean(m[3]) };
+  const parts = t.split(/\s*[,;\n]\s*/).filter(Boolean);
+  if (parts.length === 3) return { church: parts[0], ...pastor(parts[1]), city: parts[2] };
+  return {};
+}
 
-const consentPrompt = (): Reply => ({
-  text:
-    "Welcome to the Global Baptism Event! 🌊\n\n" +
-    "I help churches register and report baptisms. It takes about 2 minutes.\n\n" +
-    "Can we send you event messages here? Reply YES to agree. You can reply STOP at any time.",
-  buttons: ["YES"],
-});
+const S = {
+  en: {
+    welcome:
+      "Welcome! Baptize The World unites churches for a global day of baptism on Pentecost, May 16, 2027.\n\nWhich language do you prefer?",
+    consent: "Joining takes about 3 minutes, right here in chat. May we send you event updates here? Reply STOP anytime to opt out.",
+    consentBtns: ["Yes, send updates", "No thanks"],
+    consentAgain: "To continue, tap \"Yes, send updates\", or STOP to opt out.",
+    menu: "Thank you! What would you like to do?",
+    menuBtns: ["Register my church", "Talk to an organizer"],
+    organizer: "An organizer will message you here shortly. 🙏 In the meantime you can tap \"Register my church\".",
+    intro: "Great! In one message, tell me your church's name, your name, and your town or city.\n\nFor example: I'm Pastor Ramon from Grace Fellowship in Tacloban",
+    askChurch: "Thanks! What is your church's name?",
+    askCity: (c: string) => `What town or city is ${c} in?`,
+    askLeader: "And what is your name?",
+    badName: "Please type a name, for example: Grace Fellowship.",
+    role: (who: string, c: string) => `Thanks, ${who}! What is your role at ${c}?`,
+    roleBtns: ["Lead pastor", "Event coordinator", "Other"],
+    part: "How would your church like to take part?",
+    partBtns: ["Host our own event", "Join another church", "Help me decide"],
+    email: "Last one: an email address? Optional. Reply \"skip\" if you'd rather not.",
+    skip: ["skip", "no", "none", "saltar"],
+    check: "Please check your details:",
+    labels: { church: "Church", leader: "Pastor", role: "Role", city: "Location", part: "Taking part", email: "Email" },
+    confirmBtns: ["Yes, that's right", "Fix something"],
+    whatFix: "What should I change? For example: The church is Grace Fellowship Tacloban",
+    updated: (v: string) => `Updated: ${v}. Everything else correct?`,
+    yesFix: ["Yes", "Fix something"],
+    registered: (c: string) =>
+      `You're registered! A regional organizer will review ${c}, usually within 2 days. I'll message you here.\n\nWhen you baptize, just send the number here, for example: "12 baptisms".`,
+    dupeChurch: (c: string, city: string) =>
+      `Note: ${c} in ${city} may already be registered by someone else. I've flagged it for an organizer to check, so nothing is merged by mistake.`,
+    noNumber: "Praise God! Please send the number, for example \"23\".",
+    negative: "A baptism count can't be negative. Please send a whole number, like 23.",
+    decimal: "Please send a whole number, like 23.",
+    tooBig: (n: number) => `${n.toLocaleString("en-US")} is more than one church can report (max 10,000). Please check the number and send it again.`,
+    checkBig: (n: number, m: number) => `Just checking: did you mean ${n}, or ${m}?`,
+    rightBtn: (n: number) => `${n} is right`,
+    confirm: (n: number, c: string) => `Please confirm: ${n} ${n === 1 ? "baptism" : "baptisms"} at ${c} today?`,
+    confirmBtns2: (n: number) => [`Yes, ${n}`, "Fix"],
+    fixCount: "OK, nothing saved. Send the correct number when you're ready.",
+    recorded: (n: number, c: string) =>
+      `Recorded: ${n} ${n === 1 ? "baptism" : "baptisms"} at ${c}. Thank you for serving! 🙌\n\nIf more people are baptized later, just send the new number.`,
+    dupe: (n: number) => `We already received ${n} baptisms a few minutes ago. Is this ${n} more, or the same report?`,
+    dupeBtns: (n: number) => ["Same report", `${n} more`],
+    same: (total: number) => `Got it, the total stays at ${total}.`,
+    stop: "You're unsubscribed and won't get more messages. Reply START to rejoin.",
+    help: "Send a number to report baptisms, RESET to register again, or STOP to unsubscribe.",
+    error: "Sorry, something went wrong on our side. Please try again.",
+  },
+  es: {
+    welcome:
+      "¡Bienvenido! Baptize The World une a iglesias para un día mundial de bautismo en Pentecostés, el 16 de mayo de 2027.\n\n¿Qué idioma prefieres?",
+    consent: "Registrarse toma unos 3 minutos. ¿Podemos enviarte mensajes del evento aquí? Puedes responder STOP en cualquier momento.",
+    consentBtns: ["Sí, envíenme mensajes", "No, gracias"],
+    consentAgain: "Para continuar, toca \"Sí, envíenme mensajes\", o STOP para salir.",
+    menu: "¡Gracias! ¿Qué te gustaría hacer?",
+    menuBtns: ["Registrar mi iglesia", "Hablar con un organizador"],
+    organizer: "Un organizador te escribirá aquí pronto. 🙏 Mientras tanto puedes tocar \"Registrar mi iglesia\".",
+    intro: "¡Perfecto! Cuéntame de tu iglesia en un mensaje: nombre de la iglesia, tu nombre y tu ciudad.\n\nPor ejemplo: soy el pastor Rubén, mi iglesia es Luz del Valle en Cusco",
+    askChurch: "¡Gracias! ¿Cómo se llama tu iglesia?",
+    askCity: (c: string) => `¿En qué ciudad está ${c}?`,
+    askLeader: "¿Y cuál es tu nombre?",
+    badName: "Por favor escribe un nombre, por ejemplo: Luz del Valle.",
+    role: (who: string, c: string) => `Gracias, ${who}. Tengo:\n• ${c}\n\n¿Cuál es tu rol en la iglesia?`,
+    roleBtns: ["Pastor principal", "Coordinador", "Otro"],
+    part: "¿Quieren organizar su propio evento o unirse a otra iglesia?",
+    partBtns: ["Organizar", "Unirnos a otro", "Necesito ayuda"],
+    email: "Último paso: ¿un correo electrónico? Es opcional. Escribe \"saltar\" si no tienes.",
+    skip: ["saltar", "no", "ninguno", "skip"],
+    check: "Por favor confirma tus datos:",
+    labels: { church: "Iglesia", leader: "Pastor", role: "Rol", city: "Lugar", part: "Evento", email: "Correo" },
+    confirmBtns: ["Sí, es correcto", "Corregir algo"],
+    whatFix: "¿Qué debo cambiar? Por ejemplo: La iglesia es Luz del Valle Cusco",
+    updated: (v: string) => `Actualizado: ${v}. ¿Todo lo demás está bien?`,
+    yesFix: ["Sí", "Corregir algo"],
+    registered: (c: string) =>
+      `¡Bienvenido! ${c} está registrada. Un organizador regional revisará su participación pronto.\n\nCuando bauticen, simplemente envíe el número aquí, por ejemplo: "12 bautismos".`,
+    dupeChurch: (c: string, city: string) =>
+      `Nota: puede que ${c} en ${city} ya esté registrada. Lo marqué para que un organizador lo revise; nada se combina automáticamente.`,
+    noNumber: "¡Gloria a Dios! Por favor envía el número, por ejemplo \"14\".",
+    negative: "El número no puede ser negativo. Envía un número entero, como 14.",
+    decimal: "Envía un número entero, como 14.",
+    tooBig: (n: number) => `${n.toLocaleString("es")} es más de lo que una iglesia puede reportar (máximo 10.000). Revisa el número y envíalo otra vez.`,
+    checkBig: (n: number, m: number) => `Solo para confirmar: ¿quisiste decir ${n} o ${m}?`,
+    rightBtn: (n: number) => `${n} es correcto`,
+    confirm: (n: number, c: string) => `¿Confirmas ${n} ${n === 1 ? "bautismo" : "bautismos"} para ${c} hoy?`,
+    confirmBtns2: (n: number) => [`Sí, ${n}`, "Corregir"],
+    fixCount: "Bien, no guardé nada. Envía el número correcto cuando estés listo.",
+    recorded: (n: number, _c: string) => `Registrado: ${n} ${n === 1 ? "bautismo" : "bautismos"}. ¡Gracias por servir! 🙌`,
+    dupe: (n: number) => `Ya recibimos ${n} bautismos hace unos minutos. ¿Son ${n} más, o es el mismo reporte?`,
+    dupeBtns: (n: number) => ["Es el mismo", `Son ${n} más`],
+    same: (total: number) => `Entendido, el total sigue en ${total}.`,
+    stop: "Cancelaste la suscripción y no recibirás más mensajes. Responde START para volver.",
+    help: "Envía un número para reportar bautismos, RESET para registrarte de nuevo, o STOP para salir.",
+    error: "Lo siento, algo salió mal. Intenta de nuevo.",
+  },
+};
 
-const reportPrompt = (c: Church): Reply => ({
-  text:
-    `${c.name} is registered ✅\n\n` +
-    "After your baptism service, tell me how many people were baptized. Just send a number, like 12.",
-});
+const norm = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9@. ]+/g, " ").replace(/\s+/g, " ").trim();
+const is = (text: string, ...options: string[]) => options.some((o) => norm(o) === norm(text));
+const YES = ["yes", "y", "si", "ok", "okay", "yep", "correct", "confirm"];
+const NO = ["no", "n", "nope"];
+// A bare yes/no/ok is a stray tap or repeat, not a name or place.
+const notAName = (t: string) => t.length < 2 || t.length > 120 || is(t, ...YES, ...NO, "start", "/start");
+
+const lineOf = (lang: Lang, d: Draft) => {
+  const L = S[lang].labels;
+  return [
+    `${L.church}: ${d.church}`,
+    `${L.leader}: ${d.leader}`,
+    d.role && `${L.role}: ${d.role}`,
+    `${L.city}: ${d.city}`,
+    d.part && `${L.part}: ${d.part}`,
+    `${L.email}: ${d.email || "—"}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
+const greetName = (lang: Lang, d: Draft) => {
+  if (!d.leader) return "";
+  if (d.pastorTitle) return `Pastor ${d.leader.split(" ")[0]}`;
+  return d.leader.split(" ")[0];
+};
 
 export async function handle(channel: string, id: string, rawText: string, name?: string): Promise<Reply[]> {
   const text = (rawText || "").trim();
@@ -54,179 +193,300 @@ export async function handle(channel: string, id: string, rawText: string, name?
   const key = `${channel}:${id}`;
   let user = await getUser(key);
   if (!user) user = { id: key, channel, name, step: "new", draft: {} };
-  const who = user.name ? `${user.name}` : "A contact";
-
-  const save = async (u: User) => saveUser(u);
+  const lang: Lang = user.lang ?? (/^(hola|buen|quiero|soy)/i.test(text) ? "es" : "en");
+  const t = S[lang];
+  const who = user.name || "A contact";
+  const save = (u: User) => saveUser(u);
 
   // STOP works at every step.
-  if (["STOP", "UNSUBSCRIBE", "CANCEL", "ALTO"].includes(cmd)) {
+  if (["STOP", "UNSUBSCRIBE", "CANCEL", "ALTO", "PARAR"].includes(cmd)) {
     user.step = "stopped";
     user.stoppedAt = new Date().toISOString();
     await save(user);
-    await log(`${who} opted out (STOP)`, "warn");
-    return [{ text: "You're unsubscribed and won't get more messages from us. Send START if you want to come back." }];
+    await log(`${who} opted out (STOP), reminders cancelled`, "warn");
+    return [{ text: t.stop }];
   }
 
   if (user.step === "stopped") {
-    if (cmd === "START") {
-      user.step = "await_consent";
-      user.stoppedAt = undefined;
-      await save(user);
-      return [consentPrompt()];
-    }
-    return []; // respect opt-out: stay silent
+    if (cmd !== "START") return []; // respect opt-out: stay silent
+    user.stoppedAt = undefined;
+    user.step = "ask_language";
+    await save(user);
+    return [{ text: t.welcome, buttons: ["English", "Español"] }];
   }
 
-  if (cmd === "HELP") {
-    return [{ text: "Send a number to report baptisms, RESET to start registration over, or STOP to unsubscribe." }];
-  }
+  if (is(text, "help", "/help", "ayuda")) return [{ text: t.help }];
 
-  if (cmd === "RESET") {
-    user.step = user.consentAt ? "ask_church" : "await_consent";
+  if (cmd === "RESET" || (cmd === "START" && !user.churchId)) {
+    user.step = "ask_language";
     user.draft = {};
     user.churchId = undefined;
     await save(user);
-    return user.consentAt ? [{ text: "Starting over. What is your church's name?" }] : [consentPrompt()];
+    return [{ text: t.welcome, buttons: ["English", "Español"] }];
   }
+
+  const church = user.churchId ? await getChurch(user.churchId) : undefined;
 
   switch (user.step) {
     case "new": {
-      user.step = "await_consent";
+      user.step = "ask_language";
       await save(user);
       await log(`${who} started a conversation on ${channel}`);
-      return [consentPrompt()];
+      return [{ text: t.welcome, buttons: ["English", "Español"] }];
+    }
+
+    case "ask_language": {
+      if (is(text, "english", "en", "ingles")) user.lang = "en";
+      else if (is(text, "espanol", "spanish", "es")) user.lang = "es";
+      else return [{ text: t.welcome, buttons: ["English", "Español"] }];
+      user.step = "await_consent";
+      await save(user);
+      const tl = S[user.lang];
+      return [{ text: tl.consent, buttons: tl.consentBtns }];
     }
 
     case "await_consent": {
-      if (YES.test(text) || cmd === "START") {
+      if (is(text, ...t.consentBtns.slice(0, 1), ...YES)) {
         user.consentAt = new Date().toISOString();
-        user.step = "ask_church";
-        const existing = user.churchId ? await getChurch(user.churchId) : undefined;
-        if (existing) user.step = "registered";
+        user.step = church ? "registered" : "menu";
         await save(user);
-        await log(`${who} opted in to event messages`, "ok");
-        if (existing) return [reportPrompt(existing)];
-        return [{ text: "Thank you! What is your church's name?" }];
+        await log(`${who} opted in (${lang}), consent time saved`, "ok");
+        if (church) return [{ text: t.registered(church.name) }];
+        return [{ text: t.menu, buttons: t.menuBtns }];
       }
-      return [{ text: "To continue, reply YES to receive event messages, or STOP to opt out.", buttons: ["YES"] }];
+      if (is(text, t.consentBtns[1], "no thanks", "no gracias", ...NO)) {
+        user.step = "stopped";
+        user.stoppedAt = new Date().toISOString();
+        await save(user);
+        await log(`${who} declined messages`, "warn");
+        return [{ text: t.stop }];
+      }
+      return [{ text: t.consentAgain, buttons: t.consentBtns }];
     }
 
-    case "ask_church": {
-      if (text.length < 2 || text.length > 120) return [{ text: "Please send your church's name." }];
+    case "menu": {
+      if (is(text, t.menuBtns[1], "talk to an organizer", "hablar con un organizador", "organizer", "organizador")) {
+        await log(`${who} asked to talk to an organizer (support task)`, "warn");
+        return [{ text: t.organizer, buttons: t.menuBtns }];
+      }
+      user.step = "ask_intro";
+      await save(user);
+      if (is(text, t.menuBtns[0], "register my church", "registrar mi iglesia", "register", "registrar")) return [{ text: t.intro }];
+      return handle(channel, id, text, name); // they went straight to the intro
+    }
+
+    case "ask_intro": {
+      const d = parseIntro(text);
+      if (d.church && d.city && d.leader) {
+        user.draft = { ...user.draft, ...d };
+        user.step = "ask_role";
+        await save(user);
+        return [{ text: t.role(greetName(lang, user.draft), user.draft.church!), buttons: t.roleBtns }];
+      }
+      if (notAName(text)) return [{ text: t.intro }];
+      // Couldn't split it: treat it as the church name and ask the rest.
       user.draft.church = text;
       user.step = "ask_city";
       await save(user);
-      return [{ text: `Great. What city or town is ${text} in?` }];
+      return [{ text: t.askCity(text) }];
+    }
+
+    case "ask_church": {
+      if (notAName(text)) return [{ text: t.badName }];
+      user.draft.church = text;
+      user.step = "ask_city";
+      await save(user);
+      return [{ text: t.askCity(text) }];
     }
 
     case "ask_city": {
-      if (text.length < 2 || text.length > 120) return [{ text: "Please send your city or town." }];
+      if (notAName(text)) return [{ text: t.askCity(user.draft.church ?? "") }];
       user.draft.city = text;
       user.step = "ask_leader";
       await save(user);
-      return [{ text: "And what is the name of the pastor or coordinator?" }];
+      return [{ text: t.askLeader }];
     }
 
     case "ask_leader": {
-      if (text.length < 2 || text.length > 120) return [{ text: "Please send the pastor or coordinator's name." }];
-      user.draft.leader = text;
+      if (notAName(text)) return [{ text: t.askLeader }];
+      const p = parseIntro(`soy ${text} de x en y`);
+      user.draft.leader = p.leader ?? text;
+      user.draft.pastorTitle = p.pastorTitle;
+      user.step = "ask_role";
+      await save(user);
+      return [{ text: t.role(greetName(lang, user.draft), user.draft.church!), buttons: t.roleBtns }];
+    }
+
+    case "ask_role": {
+      if (notAName(text)) return [{ text: t.role(greetName(lang, user.draft), user.draft.church!), buttons: t.roleBtns }];
+      user.draft.role = text;
+      user.step = "ask_part";
+      await save(user);
+      return [{ text: t.part, buttons: t.partBtns }];
+    }
+
+    case "ask_part": {
+      if (notAName(text)) return [{ text: t.part, buttons: t.partBtns }];
+      user.draft.part = text;
+      user.step = "ask_email";
+      await save(user);
+      return [{ text: t.email }];
+    }
+
+    case "ask_email": {
+      if (is(text, ...t.skip)) user.draft.email = undefined;
+      else if (/^\S+@\S+\.\S+$/.test(text)) user.draft.email = text;
+      else return [{ text: t.email }];
       user.step = "confirm_church";
       await save(user);
-      const d = user.draft;
-      return [
-        {
-          text: `Please check this:\n\n⛪ ${d.church}\n📍 ${d.city}\n👤 ${d.leader}\n\nIs this right?`,
-          buttons: ["YES", "EDIT"],
-        },
-      ];
+      return [{ text: `${t.check}\n\n${lineOf(lang, user.draft)}`, buttons: t.confirmBtns }];
     }
 
     case "confirm_church": {
-      if (NO.test(text)) {
-        user.step = "ask_church";
-        user.draft = {};
+      if (is(text, t.confirmBtns[1], "fix something", "corregir algo", "fix", "corregir", "edit", ...NO)) {
+        user.step = "fix_church";
         await save(user);
-        return [{ text: "No problem, let's fix it. What is your church's name?" }];
+        return [{ text: t.whatFix }];
       }
-      if (!YES.test(text)) return [{ text: "Reply YES to confirm, or EDIT to change it.", buttons: ["YES", "EDIT"] }];
+      if (!is(text, t.confirmBtns[0], t.yesFix[0], ...YES, "yes thats right", "si es correcto")) {
+        return [{ text: `${t.check}\n\n${lineOf(lang, user.draft)}`, buttons: t.confirmBtns }];
+      }
       const d = user.draft;
       const all = await listChurches();
-      const dupe = all.find((c) => norm(c.name) === norm(d.church!) && norm(c.city) === norm(d.city!));
-      const church: Church = {
+      const dupe = all.find((c) => norm(c.name) === norm(d.church!) && norm(c.city) === norm(d.city!) && c.contactId !== user.id);
+      const c: Church = {
         id: `ch_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
         name: d.church!,
         city: d.city!,
         leader: d.leader!,
+        role: d.role,
+        part: d.part,
+        email: d.email,
+        lang,
         contactId: user.id,
         registeredAt: new Date().toISOString(),
         possibleDuplicateOf: dupe?.id,
       };
-      await registerChurch(church);
-      user.churchId = church.id;
+      await registerChurch(c);
+      user.churchId = c.id;
       user.step = "registered";
       user.draft = {};
       await save(user);
+      const out: Reply[] = [{ text: t.registered(c.name) }];
       if (dupe) {
-        await log(`Possible duplicate: ${church.name}, ${church.city} (flagged for organizer review)`, "warn");
-        return [
-          { text: `It looks like ${dupe.name} in ${dupe.city} may already be registered. I've saved yours and flagged it so an organizer can check, so nothing is merged by mistake.` },
-          reportPrompt(church),
-        ];
+        await log(`Possible duplicate: ${c.name}, ${c.city} (flagged for review, not merged)`, "warn");
+        out.unshift({ text: t.dupeChurch(dupe.name, dupe.city) });
+      } else {
+        await log(`Registered: ${c.name}, ${c.city} · ${d.part ?? ""} · duplicate check passed`, "ok");
       }
-      await log(`New church registered: ${church.name}, ${church.city}`, "ok");
-      return [reportPrompt(church)];
+      return out;
+    }
+
+    case "fix_church": {
+      const m = text.match(
+        /^(?:the\s+|my\s+|la\s+|el\s+|mi\s+)?(church|iglesia|city|town|location|ciudad|lugar|name|pastor|nombre|role|rol|email|correo)\s*(?:name\s+)?(?:is|es|:|=)\s*(.+)$/i,
+      );
+      if (!m) return [{ text: t.whatFix }];
+      const field = m[1].toLowerCase();
+      const value = m[2].trim();
+      const map: Record<string, keyof Draft> = {
+        church: "church", iglesia: "church", city: "city", town: "city", location: "city", ciudad: "city", lugar: "city",
+        name: "leader", pastor: "leader", nombre: "leader", role: "role", rol: "role", email: "email", correo: "email",
+      };
+      (user.draft as Record<string, unknown>)[map[field]] = value;
+      user.step = "confirm_church";
+      await save(user);
+      return [{ text: t.updated(value), buttons: t.yesFix }];
     }
 
     case "registered": {
-      const church = user.churchId ? await getChurch(user.churchId) : undefined;
       if (!church) {
-        user.step = "ask_church";
+        user.step = "menu";
         await save(user);
-        return [{ text: "I couldn't find your registration. What is your church's name?" }];
+        return [{ text: t.menu, buttons: t.menuBtns }];
       }
-      if (cmd === "START") return [reportPrompt(church)];
+      if (cmd === "START") return [{ text: t.registered(church.name) }];
       const parsed = parseCount(text);
       if (!parsed.ok) {
         await log(`Rejected report from ${church.name}: "${text.slice(0, 30)}"`, "warn");
-        return [{ text: parsed.error }];
+        if (parsed.error === "too_big") return [{ text: t.tooBig(parsed.value!) }];
+        return [{ text: t[parsed.error === "none" ? "noNumber" : parsed.error] }];
       }
-      if (church.baptisms === parsed.value) {
-        await log(`Duplicate report ignored: ${church.name} sent ${parsed.value} again`, "warn");
-        return [{ text: `You've already reported ${parsed.value} baptisms for ${church.name}, so I haven't counted it twice. 🙏` }];
+      const n = parsed.value;
+      user.draft.count = n;
+      // Sanity check: a round number of 100+ is often an extra zero (230 vs 23).
+      if (n >= 100 && n % 10 === 0) {
+        user.step = "check_count";
+        await save(user);
+        await log(`Unusual count from ${church.name}: ${n}, asked to double-check`, "warn");
+        return [{ text: t.checkBig(n, n / 10), buttons: [String(n / 10), t.rightBtn(n)] }];
       }
-      user.draft.count = parsed.value;
+      const last = church.reports?.[church.reports.length - 1];
+      if (last && last.count === n && Date.now() - Date.parse(last.at) < DUPE_WINDOW_MS) {
+        user.step = "dupe_count";
+        await save(user);
+        await log(`Possible duplicate report: ${church.name} sent ${n} again`, "warn");
+        return [{ text: t.dupe(n), buttons: t.dupeBtns(n) }];
+      }
       user.step = "confirm_count";
       await save(user);
-      const prev = church.baptisms !== undefined ? `\n\nThis replaces your earlier report of ${church.baptisms}.` : "";
-      return [{ text: `${parsed.value} ${parsed.value === 1 ? "person" : "people"} baptized at ${church.name}. Is that right?${prev}`, buttons: ["YES", "NO"] }];
+      return [{ text: t.confirm(n, church.name), buttons: t.confirmBtns2(n) }];
+    }
+
+    case "check_count": {
+      const n = user.draft.count;
+      if (!church || n === undefined) break;
+      let chosen: number | undefined;
+      if (is(text, t.rightBtn(n))) chosen = n;
+      else {
+        const p = parseCount(text);
+        if (p.ok && (p.value === n || p.value === n / 10)) chosen = p.value;
+      }
+      if (chosen === undefined) return [{ text: t.checkBig(n, n / 10), buttons: [String(n / 10), t.rightBtn(n)] }];
+      return record(user, church, chosen, lang);
     }
 
     case "confirm_count": {
-      const church = user.churchId ? await getChurch(user.churchId) : undefined;
-      const count = user.draft.count;
-      if (!church || count === undefined) {
-        user.step = "registered";
-        await save(user);
-        return [{ text: "Let's try again. How many people were baptized?" }];
-      }
-      if (NO.test(text)) {
+      const n = user.draft.count;
+      if (!church || n === undefined) break;
+      if (is(text, t.confirmBtns2(n)[1], "fix", "corregir", "edit", ...NO)) {
         user.step = "registered";
         user.draft = {};
         await save(user);
-        return [{ text: "OK, nothing saved. Send the correct number when you're ready." }];
+        return [{ text: t.fixCount }];
       }
-      if (!YES.test(text)) return [{ text: `Reply YES to save ${count}, or NO to change it.`, buttons: ["YES", "NO"] }];
-      await saveCount(church, count);
-      user.step = "registered";
-      user.draft = {};
-      await save(user);
-      await log(`${church.name} reported ${count} baptisms 🎉`, "ok");
-      return [
-        {
-          text: `Saved! ${count} baptisms at ${church.name}. Praise God! 🙌\n\nThank you for walking with them. If the number changes, just send the new one.`,
-        },
-      ];
+      if (!is(text, t.confirmBtns2(n)[0], ...YES, String(n))) return [{ text: t.confirm(n, church.name), buttons: t.confirmBtns2(n) }];
+      return record(user, church, n, lang);
+    }
+
+    case "dupe_count": {
+      const n = user.draft.count;
+      if (!church || n === undefined) break;
+      if (is(text, t.dupeBtns(n)[0], "same", "same report", "es el mismo", "mismo")) {
+        user.step = "registered";
+        user.draft = {};
+        await save(user);
+        await log(`Duplicate report ignored for ${church.name}, total stays ${church.baptisms ?? 0}`, "info");
+        return [{ text: t.same(church.baptisms ?? 0) }];
+      }
+      if (is(text, t.dupeBtns(n)[1], "more", "mas", `son ${n} mas`, `${n} more`)) return record(user, church, n, lang);
+      return [{ text: t.dupe(n), buttons: t.dupeBtns(n) }];
     }
   }
-  return [];
+
+  user.step = church ? "registered" : "menu";
+  user.draft = {};
+  await save(user);
+  return [{ text: church ? t.registered(church.name) : t.menu, buttons: church ? undefined : t.menuBtns }];
 }
+
+async function record(user: User, church: Church, n: number, lang: Lang): Promise<Reply[]> {
+  const updated = await saveCount(church, n);
+  user.step = "registered";
+  user.draft = {};
+  await saveUser(user);
+  await log(`${church.name} reported ${n} baptisms 🎉 (total ${updated.baptisms}) · awaiting Baptize review`, "ok");
+  return [{ text: S[lang].recorded(n, church.name) }];
+}
+
+export const errorReply = (lang: Lang = "en"): Reply => ({ text: S[lang].error });

@@ -4,34 +4,64 @@
 
 export type Step =
   | "new"
+  | "ask_language"
   | "await_consent"
+  | "menu"
+  | "ask_intro"
   | "ask_church"
   | "ask_city"
   | "ask_leader"
+  | "ask_role"
+  | "ask_part"
+  | "ask_email"
   | "confirm_church"
+  | "fix_church"
   | "registered"
+  | "check_count"
   | "confirm_count"
+  | "dupe_count"
   | "stopped";
+
+export type Lang = "en" | "es";
+
+export type Draft = {
+  church?: string;
+  city?: string;
+  leader?: string;
+  pastorTitle?: boolean;
+  role?: string;
+  part?: string;
+  email?: string;
+  count?: number;
+};
 
 export type User = {
   id: string;
   channel: string;
   name?: string;
+  lang?: Lang;
   step: Step;
   consentAt?: string;
   stoppedAt?: string;
-  draft: { church?: string; city?: string; leader?: string; count?: number };
+  draft: Draft;
   churchId?: string;
 };
+
+export type Report = { count: number; at: string };
 
 export type Church = {
   id: string;
   name: string;
   city: string;
   leader: string;
+  role?: string;
+  part?: string;
+  email?: string;
+  lang?: Lang;
   contactId: string;
   registeredAt: string;
   possibleDuplicateOf?: string;
+  reports?: Report[];
   baptisms?: number;
   reportedAt?: string;
 };
