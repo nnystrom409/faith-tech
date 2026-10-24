@@ -1,4 +1,5 @@
-// Storage: Upstash Redis (REST) when its env vars exist, otherwise in-memory.
+// Storage: Supabase (REST) or Upstash Redis (REST) when their env vars exist,
+// otherwise in-memory. Supabase errors fall back to memory so the bot keeps answering.
 // In-memory is fine for local dev; on Vercel add Upstash so the webhook and
 // dashboard see the same data across function instances.
 
@@ -80,7 +81,9 @@ export type Activity = { at: string; text: string; kind: "ok" | "warn" | "info" 
 
 const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-export const storeKind = url && token ? "redis" : "memory";
+const sbUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+const sbKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+export const storeKind = sbUrl && sbKey ? "supabase" : url && token ? "redis" : "memory";
 
 type Mem = { users: Map<string, User>; churches: Map<string, Church>; activity: Activity[] };
 const g = globalThis as unknown as { __mem?: Mem };
@@ -100,35 +103,77 @@ async function redis(cmd: (string | number)[]): Promise<unknown> {
 
 const P = "ft:";
 
+// Tables ft_records(bucket, id, data jsonb) and ft_activity(at, data jsonb), RLS on,
+// read and written only server-side with the service role key.
+async function sb<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const auth: Record<string, string> = { apikey: sbKey! };
+  if (!sbKey!.startsWith("sb_")) auth.Authorization = `Bearer ${sbKey}`;
+  const res = await fetch(`${sbUrl}/rest/v1/${path}`, {
+    ...init,
+    headers: { ...auth, "Content-Type": "application/json", ...(init.headers as Record<string, string>) },
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`supabase ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const body = await res.text();
+  return (body ? JSON.parse(body) : null) as T;
+}
+const sbGet = async <T>(bucket: string, id: string) =>
+  ((await sb<{ data: T }[]>(`ft_records?bucket=eq.${bucket}&id=eq.${encodeURIComponent(id)}&select=data`))[0]?.data);
+const sbPut = (bucket: string, id: string, data: unknown) =>
+  sb("ft_records", {
+    method: "POST",
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ bucket, id, data, updated_at: new Date().toISOString() }),
+  });
+const sbList = async <T>(bucket: string) => (await sb<{ data: T }[]>(`ft_records?bucket=eq.${bucket}&select=data`)).map((r) => r.data);
+
+// Try Supabase; on any error, log it and use memory for this call.
+async function viaSb<T>(fn: () => Promise<T>, fallback: () => T): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    console.error("store fallback to memory:", e);
+    return fallback();
+  }
+}
+
 export async function getUser(id: string): Promise<User | undefined> {
+  if (storeKind === "supabase") return viaSb(() => sbGet<User>("users", id), () => mem.users.get(id));
   if (storeKind === "memory") return mem.users.get(id);
   const raw = (await redis(["HGET", P + "users", id])) as string | null;
   return raw ? (JSON.parse(raw) as User) : undefined;
 }
 
 export async function saveUser(u: User) {
-  if (storeKind === "memory") return void mem.users.set(u.id, u);
+  mem.users.set(u.id, u);
+  if (storeKind === "supabase") return void (await viaSb(() => sbPut("users", u.id, u), () => null));
+  if (storeKind === "memory") return;
   await redis(["HSET", P + "users", u.id, JSON.stringify(u)]);
 }
 
 export async function listUsers(): Promise<User[]> {
+  if (storeKind === "supabase") return viaSb(() => sbList<User>("users"), () => [...mem.users.values()]);
   if (storeKind === "memory") return [...mem.users.values()];
   const vals = (await redis(["HVALS", P + "users"])) as string[];
   return vals.map((v) => JSON.parse(v) as User);
 }
 
 export async function getChurch(id: string): Promise<Church | undefined> {
+  if (storeKind === "supabase") return viaSb(() => sbGet<Church>("churches", id), () => mem.churches.get(id));
   if (storeKind === "memory") return mem.churches.get(id);
   const raw = (await redis(["HGET", P + "churches", id])) as string | null;
   return raw ? (JSON.parse(raw) as Church) : undefined;
 }
 
 export async function saveChurch(c: Church) {
-  if (storeKind === "memory") return void mem.churches.set(c.id, c);
+  mem.churches.set(c.id, c);
+  if (storeKind === "supabase") return void (await viaSb(() => sbPut("churches", c.id, c), () => null));
+  if (storeKind === "memory") return;
   await redis(["HSET", P + "churches", c.id, JSON.stringify(c)]);
 }
 
 export async function listChurches(): Promise<Church[]> {
+  if (storeKind === "supabase") return viaSb(() => sbList<Church>("churches"), () => [...mem.churches.values()]);
   if (storeKind === "memory") return [...mem.churches.values()];
   const vals = (await redis(["HVALS", P + "churches"])) as string[];
   return vals.map((v) => JSON.parse(v) as Church);
@@ -136,7 +181,11 @@ export async function listChurches(): Promise<Church[]> {
 
 export async function log(text: string, kind: Activity["kind"] = "info") {
   const a: Activity = { at: new Date().toISOString(), text, kind };
-  if (storeKind === "memory") {
+  if (storeKind === "supabase") {
+    const ok = await viaSb(() => sb("ft_activity", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ at: a.at, data: a }) }).then(() => true), () => false);
+    if (ok) return;
+  }
+  if (storeKind !== "redis") {
     mem.activity.unshift(a);
     mem.activity.length = Math.min(mem.activity.length, 50);
     return;
@@ -146,6 +195,8 @@ export async function log(text: string, kind: Activity["kind"] = "info") {
 }
 
 export async function listActivity(): Promise<Activity[]> {
+  if (storeKind === "supabase")
+    return viaSb(async () => (await sb<{ data: Activity }[]>("ft_activity?select=data&order=at.desc&limit=50")).map((r) => r.data), () => mem.activity);
   if (storeKind === "memory") return mem.activity;
   const vals = (await redis(["LRANGE", P + "activity", 0, 49])) as string[];
   return vals.map((v) => JSON.parse(v) as Activity);
