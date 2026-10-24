@@ -1,0 +1,75 @@
+/* Starter pack portal. Scoped under .pk so it doesn't touch the dashboard. */
+.pk { --ink:#16160C; --mut:#5C5C55; --bg:#F7F6F2; --card:#fff; --line:#E4E2DA; --soft:#F1EFE8; --acc:#B4410F; --accSoft:#FDEEE3; --accInk:#8F330B;
+  --ok:#17603A; --okSoft:#E3F3E8; --warn:#6E4700; --warnSoft:#FFF1D6; --na:#4A4A44; --naSoft:#EEEDE8; --blue:#1D4466; --blueSoft:#DDE7F0;
+  min-height: 100vh; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.pk-col { max-width: 520px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
+.pk a { color: var(--acc); }
+.pk svg.i { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.pk-top { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: var(--card); border-bottom: 1px solid var(--line); }
+.pk-top img { width: 32px; height: 32px; border-radius: 50%; }
+.pk-tt { font-weight: 700; font-size: 16px; line-height: 1.2; }
+.pk-ts { font-size: 12px; color: var(--mut); }
+.pk-role { margin-left: auto; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--accSoft); color: var(--accInk); }
+.pk-role.vol { background: var(--blueSoft); color: var(--blue); }
+.pk-role.par { background: var(--okSoft); color: var(--ok); }
+.pk-body { flex: 1; padding: 16px 16px 96px; display: flex; flex-direction: column; gap: 14px; }
+.pk-card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.pk-card.dark { background: var(--ink); border-color: var(--ink); color: #fff; }
+.pk-card.dark .pk-mut { color: #E4E2DA; }
+.pk-card.dark .pk-k { color: #CFCBBF; }
+.pk h1 { font-size: 26px; line-height: 1.15; margin: 0; font-weight: 700; }
+.pk h2 { font-size: 17px; line-height: 1.25; margin: 0; font-weight: 700; }
+.pk p { margin: 0; }
+.pk-k { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--mut); }
+.pk-mut { color: var(--mut); font-size: 13px; }
+.pk-row { display: flex; align-items: center; gap: 10px; }
+.pk-between { justify-content: space-between; }
+.pk-grow { flex: 1; min-width: 0; }
+.pk .pk-btn, .pk .pk-btn2 { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 16px; border-radius: 12px; font: inherit; font-weight: 600; text-decoration: none; cursor: pointer; flex: 1; }
+.pk .pk-btn { background: var(--ink); color: #fff; border: 0; }
+.pk .pk-btn2 { background: var(--card); color: var(--ink); border: 1px solid #CFCBBF; }
+.pk .pk-btn.light { background: #fff; color: var(--ink); }
+.pk-tabs { position: fixed; bottom: 0; left: 0; right: 0; z-index: 2; background: var(--card); border-top: 1px solid var(--line); padding: 4px 4px calc(10px + env(safe-area-inset-bottom)); }
+.pk-tabs-in { max-width: 520px; margin: 0 auto; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.pk .pk-tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 52px; font-size: 11px; color: var(--mut); text-decoration: none; }
+.pk .pk-tab.on { color: var(--acc); font-weight: 600; }
+.pk-pill { display: inline-flex; align-items: center; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; white-space: nowrap; border: 1px solid transparent; }
+.s-ok { background: var(--okSoft); color: var(--ok); } .s-warn { background: var(--warnSoft); color: var(--warn); }
+.s-help { background: var(--accSoft); color: var(--accInk); } .s-na { background: var(--naSoft); color: var(--na); }
+.pk-bar { height: 8px; border-radius: 999px; background: var(--naSoft); overflow: hidden; }
+.pk-bar > span { display: block; height: 100%; background: var(--acc); border-radius: 999px; transition: width .2s; }
+.pk-li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid #EEEDE8; color: var(--ink); text-decoration: none; }
+.pk .pk-li { color: var(--ink); }
+.pk-li.first { border-top: 0; }
+.pk-ic { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: var(--soft); color: var(--ink); flex: none; font-size: 10px; font-weight: 700; }
+.pk-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.pk-stat { background: var(--bg); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; }
+.pk-num { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.pk-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.pk .pk-tile { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: var(--bg); color: var(--ink); text-decoration: none; min-height: 86px; font-weight: 600; font-size: 14px; line-height: 1.25; }
+.pk .pk-tile.urgent { background: var(--ink); color: #fff; }
+.pk .pk-st { font: inherit; font-size: 12px; font-weight: 600; min-height: 44px; min-width: 96px; padding: 0 10px; border-radius: 999px; cursor: pointer; }
+.pk-ess { font-size: 11px; font-weight: 700; color: var(--accInk); letter-spacing: .04em; text-transform: uppercase; }
+.pk .pk-seg { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 4px; background: var(--naSoft); border-radius: 12px; padding: 4px; }
+.pk .pk-seg button { font: inherit; font-size: 14px; font-weight: 600; min-height: 40px; border-radius: 9px; border: 0; background: transparent; color: var(--na); cursor: pointer; padding: 0; }
+.pk .pk-seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.pk .pk-dl { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; color: var(--ink); flex: none; }
+.pk .pk-sbt { width: 44px; height: 44px; padding: 0; border-radius: 12px; border: 1px solid #CFCBBF; background: #fff; font: inherit; font-size: 22px; font-weight: 600; color: var(--ink); cursor: pointer; }
+.pk .pk-big { font-size: 28px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 64px; text-align: center; }
+.pk .pk-sw { position: relative; width: 52px; height: 32px; border-radius: 999px; border: 0; cursor: pointer; flex: none; padding: 0; background: #CFCBBF; }
+.pk .pk-sw.on { background: var(--ok); }
+.pk-sw > span { position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: left .15s; }
+.pk-sw.on > span { left: 23px; }
+.pk-tl { display: grid; grid-template-columns: 56px 14px minmax(0, 1fr); column-gap: 10px; padding-bottom: 14px; }
+.pk-tl:last-child, .pk-js:last-child { padding-bottom: 0; }
+.pk-tm { font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pk-dot { width: 12px; height: 12px; border-radius: 50%; margin-top: 4px; background: #fff; border: 2px solid #CFCBBF; box-sizing: border-box; }
+.pk-dot.done { background: var(--ok); border-color: var(--ok); }
+.pk-dot.now { background: var(--acc); border-color: var(--acc); box-shadow: 0 0 0 4px var(--accSoft); }
+.pk-js { display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 10px; padding-bottom: 12px; }
+.pk-av { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; flex: none; background: var(--naSoft); color: var(--na); }
+.pk-qr { position: relative; width: 168px; height: 168px; padding: 8px; background: #fff; border: 1px solid var(--line); border-radius: 12px; margin: 0 auto; box-sizing: border-box; }
+.pk-qr img.mark { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; background: #fff; border-radius: 8px; padding: 4px; box-sizing: border-box; }
+.pk-photo { position: relative; min-height: 96px; border-radius: 12px; border: 1.5px dashed #CFCBBF; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--mut); font-size: 14px; font-weight: 600; cursor: pointer; }
+.pk-note { font-size: 12px; color: var(--mut); text-align: center; }
+.pk-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 3; }
