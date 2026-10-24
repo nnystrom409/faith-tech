@@ -24,6 +24,8 @@ export type Step =
   | "ask_followup_owner"
   | "followup_people"
   | "followup_guide"
+  | "find_city"
+  | "find_pick"
   | "stopped";
 
 export type Lang = "en" | "es";
