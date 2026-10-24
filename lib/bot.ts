@@ -204,7 +204,8 @@ export async function handle(channel: string, id: string, rawText: string, name?
   const text = (rawText || "").trim();
   const user = await getUser(`${channel}:${id}`);
   const askable = user && !["new", "ask_language", "stopped"].includes(user.step) && user.lastPrompt;
-  if (askable && looksLikeQuestion(text) && !isExpectedAnswer(user, text)) {
+  const first = text.replace(/^\//, "").split(/[\s@?¿!.,]/)[0].toUpperCase();
+  if (askable && !GLOBAL_CMDS.includes(first) && looksLikeQuestion(text) && !isExpectedAnswer(user, text)) {
     const answer = await answerQuestion(text, user.lang ?? "en");
     await log(`Question from ${user.name || "a contact"}${answer ? " answered by AI" : " sent to an organizer"}: "${text.slice(0, 40)}"`, answer ? "info" : "warn");
     // Without an answer, still don't let a question be saved as a name or place.
@@ -218,6 +219,9 @@ export async function handle(channel: string, id: string, rawText: string, name?
   }
   return replies;
 }
+
+// Opt-out words always reach flow(), even with a "?" after them.
+const GLOBAL_CMDS = ["STOP", "UNSUBSCRIBE", "CANCEL", "ALTO", "PARAR"];
 
 // A step that expects free text (names, places) shouldn't treat "Grace? Church" as a question.
 const isExpectedAnswer = (u: User, text: string) =>
@@ -639,7 +643,7 @@ export async function organizerMessage(churchId: string, action: OrganizerAction
         { text: `Good news, ${p}: ${church.name} is confirmed as a host church! 🎉` },
         { text: "🎬 Welcome video · 2 min\nPurpose, what to expect, preparing candidates, and caring for them after.\n\nCan't play video? Reply TEXT for a short written summary." },
         {
-          text: `Your host starter pack: planning checklist, baptism prep guide, invite graphics, event-day guide and follow-up resources.\n${ORG.packUrl}\n\nInvite your team. Share this link with volunteers so they join ${church.name} and pick a role:\nhttps://t.me/FaithTech_tribos_bot?start=team_${church.id}`,
+          text: `Your host starter pack: planning checklist, baptism prep guide, invite graphics, event-day guide and follow-up resources.\n${ORG.packUrl}`,
           buttons: ["Got it, thank you!", "I need help"],
         },
       ];
