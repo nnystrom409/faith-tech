@@ -5,6 +5,7 @@
 // model, decides what is saved.
 import { getUser, saveUser, listChurches, getChurch, saveChurch, log, type User, type Church, type Lang, type Draft } from "./store";
 import { registerChurch, saveCount } from "./baptize";
+import { findNear, EVENTS } from "./events";
 import { answerQuestion, looksLikeQuestion } from "./ai";
 
 export type Reply = { text: string; buttons?: string[]; link?: { label: string; url: string } };
@@ -90,7 +91,12 @@ const S = {
     consentBtns: ["Yes, send updates", "No thanks"],
     consentAgain: "To continue, tap \"Yes, send updates\", or STOP to opt out.",
     menu: "Thank you! What would you like to do?",
-    menuBtns: ["Register my church", "Talk to an organizer"],
+    menuBtns: ["Register my church", "Talk to an organizer", "Find a baptism near me"],
+    findAsk: "Happy to help you find a baptism near you! What town or city are you in?",
+    findList: (place: string, list: string) => `Here are listed Pentecost baptism events near ${place}:\n\n${list}\n\nTap one and I'll connect you. We never share anyone's contact details.`,
+    findNone: (place: string) => `I couldn't find a listed event near ${place} yet. I've passed your request to an organizer, who will follow up here.`,
+    findAgain: "Search another city",
+    findDone: (c: string) => `Wonderful! 🙏 I've passed your interest to the organizers for ${c}, and they'll connect you with the church here. Your details are only shared with them.`,
     organizer: "An organizer will message you here shortly. 🙏 In the meantime you can tap \"Register my church\".",
     intro: "Great! In one message, tell me your church's name, your name, and your town or city.\n\nFor example: I'm Pastor Ramon from Grace Fellowship in Tacloban",
     askChurch: "Thanks! What is your church's name?",
@@ -140,7 +146,12 @@ const S = {
     consentBtns: ["Sí, envíenme mensajes", "No, gracias"],
     consentAgain: "Para continuar, toca \"Sí, envíenme mensajes\", o STOP para salir.",
     menu: "¡Gracias! ¿Qué te gustaría hacer?",
-    menuBtns: ["Registrar mi iglesia", "Hablar con un organizador"],
+    menuBtns: ["Registrar mi iglesia", "Hablar con un organizador", "Buscar un bautismo cerca"],
+    findAsk: "¡Con gusto te ayudo a encontrar un bautismo cerca! ¿En qué ciudad estás?",
+    findList: (place: string, list: string) => `Estos son los eventos de bautismo de Pentecostés cerca de ${place}:\n\n${list}\n\nToca uno y te conecto. Nunca compartimos datos de contacto.`,
+    findNone: (place: string) => `Aún no encontré un evento cerca de ${place}. Le pasé tu solicitud a un organizador, que te escribirá aquí.`,
+    findAgain: "Buscar otra ciudad",
+    findDone: (c: string) => `¡Qué bien! 🙏 Le pasé tu interés a los organizadores de ${c}, y te conectarán con la iglesia aquí. Tus datos solo se comparten con ellos.`,
     organizer: "Un organizador te escribirá aquí pronto. 🙏 Mientras tanto puedes tocar \"Registrar mi iglesia\".",
     intro: "¡Perfecto! Cuéntame de tu iglesia en un mensaje: nombre de la iglesia, tu nombre y tu ciudad.\n\nPor ejemplo: soy el pastor Rubén, mi iglesia es Luz del Valle en Cusco",
     askChurch: "¡Gracias! ¿Cómo se llama tu iglesia?",
@@ -325,6 +336,11 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
         await log(`${who} asked to talk to an organizer (support task)`, "warn");
         return [{ text: t.organizer, buttons: t.menuBtns }];
       }
+      if (is(text, t.menuBtns[2], "find a baptism near me", "buscar un bautismo cerca", "find near me", "near me", "cerca")) {
+        user.step = "find_city";
+        await save(user);
+        return [{ text: t.findAsk }];
+      }
       user.step = "ask_intro";
       await save(user);
       if (is(text, t.menuBtns[0], "register my church", "registrar mi iglesia", "register", "registrar")) return [{ text: t.intro }];
@@ -436,6 +452,40 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
         await log(`Registered: ${c.name}, ${c.city} · ${d.part ?? ""} · duplicate check passed`, "ok");
       }
       return out;
+    }
+
+    case "find_city": {
+      const found = findNear(text);
+      const place = nice(text) ?? text;
+      if (!found.length) {
+        user.step = "menu";
+        await save(user);
+        await log(`${who} looked for a baptism near ${place}: none listed, sent to an organizer`, "warn");
+        return [{ text: t.findNone(place), buttons: t.menuBtns }];
+      }
+      user.step = "find_pick";
+      await save(user);
+      const list = found.map((e) => `⛪ ${e.church}, ${e.city}\n${e.when}`).join("\n\n");
+      return [{ text: t.findList(place, list), buttons: [...found.map((e) => e.church), t.findAgain] }];
+    }
+
+    case "find_pick": {
+      if (is(text, t.findAgain, "search another city", "buscar otra ciudad", "another", "otra")) {
+        user.step = "find_city";
+        await save(user);
+        return [{ text: t.findAsk }];
+      }
+      const ev = EVENTS.find((e) => e.listed && is(text, e.church));
+      if (!ev) {
+        // Typed a place instead of tapping a church: search again.
+        user.step = "find_city";
+        await save(user);
+        return flow(channel, id, text, name);
+      }
+      user.step = "menu";
+      await save(user);
+      await log(`${who} wants to join the baptism at ${ev.church}, ${ev.city} (follow-up task, contact kept private)`, "ok");
+      return [{ text: t.findDone(ev.church), buttons: t.menuBtns }];
     }
 
     case "fix_church": {

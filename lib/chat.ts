@@ -65,6 +65,7 @@ const EMOJI: Record<string, string> = {
   "Host our own event": "🏠", Organizar: "🏠", "Join another church": "🤝", "Unirnos a otro": "🤝", "Help me decide": "🤔", "Necesito ayuda": "🤔",
   "Yes, that's right": "✅", "Sí, es correcto": "✅", Yes: "✅", "Sí": "✅", "Fix something": "✏️", "Corregir algo": "✏️",
   Fix: "✏️", Corregir: "✏️", "Same report": "🔁", "Es el mismo": "🔁", "Got it, thank you!": "🙌", "I need help": "🆘",
+  "Find a baptism near me": "📍", "Buscar un bautismo cerca": "📍", "Search another city": "🔎", "Buscar otra ciudad": "🔎",
   "See full list": "📋", "Send the guide": "📖", "Some still need one": "⏳", "Need help": "🆘",
 };
 const label = (b: string) => {
