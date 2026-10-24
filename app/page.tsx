@@ -1,5 +1,6 @@
 "use client";
 import { Fragment, useEffect, useState } from "react";
+import "./dashboard.css";
 
 type Stats = {
   store: string;
@@ -41,9 +42,18 @@ export default function Dashboard() {
   );
 
   return (
+    <div className="dash">
+    <header className="dash-top">
+      <img src="/brand/baptize-wordmark-white.svg" alt="Baptize The World" className="dash-wm" />
+      <span className="dash-div" aria-hidden="true" />
+      <div>
+        <div className="dash-tt">Global Baptism Event · Admin</div>
+        <div className="dash-ts">Pentecost Sunday · 16 May 2027</div>
+      </div>
+      <nav className="dash-nav"><a href="/pack">Starter pack</a><a href="/chat">Web chat</a></nav>
+    </header>
     <main>
-      <h1>Global Baptism Event</h1>
-      <p className="sub">Live from chat · updates every 2 seconds · test data only · <a href="/chat">web chat backup</a></p>
+      <p className="sub"><span className="dash-live" aria-hidden="true" />Live from chat · updates every 2 seconds · test data only</p>
       <div className="grid">
         {tile("Baptisms reported", t?.baptisms, "hero")}
         {tile("Churches registered", t?.churches)}
@@ -91,5 +101,11 @@ export default function Dashboard() {
         </div>
       </div>
     </main>
+    <footer className="dash-foot">
+      <img src="/brand/baptize-b-mark-ink.svg" alt="" width={20} height={20} />
+      <span>Baptize The World · built at FaithTech SoCal</span>
+      <img src="/brand/faithtech-wordmark.svg" alt="FaithTech" className="dash-ft" />
+    </footer>
+    </div>
   );
 }
