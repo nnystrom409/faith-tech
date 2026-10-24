@@ -20,6 +20,10 @@ export type Step =
   | "check_count"
   | "confirm_count"
   | "dupe_count"
+  | "approved"
+  | "ask_followup_owner"
+  | "followup_people"
+  | "followup_guide"
   | "stopped";
 
 export type Lang = "en" | "es";
@@ -45,6 +49,7 @@ export type User = {
   stoppedAt?: string;
   draft: Draft;
   churchId?: string;
+  lastPrompt?: { text: string; buttons?: string[] };
 };
 
 export type Report = { count: number; at: string };
@@ -61,6 +66,9 @@ export type Church = {
   contactId: string;
   registeredAt: string;
   possibleDuplicateOf?: string;
+  status?: "Registered" | "Confirmed" | "Ready";
+  followupOwner?: string;
+  needsHelp?: string[];
   reports?: Report[];
   baptisms?: number;
   reportedAt?: string;

@@ -3,8 +3,9 @@
 // into handle(channel, id, text) and sends back the replies. Buttons are plain
 // words, so typing the answer works the same as tapping it. The code, not a
 // model, decides what is saved.
-import { getUser, saveUser, listChurches, getChurch, log, type User, type Church, type Lang, type Draft } from "./store";
+import { getUser, saveUser, listChurches, getChurch, saveChurch, log, type User, type Church, type Lang, type Draft } from "./store";
 import { registerChurch, saveCount } from "./baptize";
+import { answerQuestion, looksLikeQuestion } from "./ai";
 
 export type Reply = { text: string; buttons?: string[] };
 
@@ -56,8 +57,16 @@ export function parseIntro(input: string): Draft {
   if (m) return { ...pastor(m[1]), church: clean(m[2]), city: clean(m[3]) };
   m = t.match(/soy\s+(.+?)\s+de\s+(.+?)\s+en\s+(.+)$/i);
   if (m) return { ...pastor(m[1]), church: clean(m[2]), city: clean(m[3]) };
+  // "Nick, Vintage Church, Santa Monica" or "Vintage Church, Nick, Santa Monica":
+  // the part that sounds like a church is the church, the last part is the city.
   const parts = t.split(/\s*[,;\n]\s*/).filter(Boolean);
-  if (parts.length === 3) return { church: parts[0], ...pastor(parts[1]), city: parts[2] };
+  if (parts.length === 3) {
+    const CHURCH = /church|iglesia|igreja|fellowship|chapel|capilla|ministr|parish|parroquia|templo|temple|assembly|asamblea|tabernacle|cathedral|catedral|congregation|comunidad|community|mission|misi[oó]n|bautista|baptist|cristian|christian|gospel|evangel/i;
+    const PERSON = /^(el |la )?(pastor|pastora|rev|reverend|father|padre|hermano|hermana|sister|brother)\b/i;
+    let ci = parts.slice(0, 2).findIndex((p) => CHURCH.test(p) && !PERSON.test(p));
+    if (ci < 0) ci = PERSON.test(parts[0]) ? 1 : 0;
+    return { church: parts[ci], ...pastor(parts[1 - ci]), city: parts[2] };
+  }
   return {};
 }
 
@@ -109,6 +118,7 @@ const S = {
     stop: "You're unsubscribed and won't get more messages. Reply START to rejoin.",
     help: "Send a number to report baptisms, RESET to register again, or STOP to unsubscribe.",
     error: "Sorry, something went wrong on our side. Please try again.",
+    noAnswer: "Good question! I've passed it to an organizer, who will reply here.",
   },
   es: {
     welcome:
@@ -156,6 +166,7 @@ const S = {
     stop: "Cancelaste la suscripción y no recibirás más mensajes. Responde START para volver.",
     help: "Envía un número para reportar bautismos, RESET para registrarte de nuevo, o STOP para salir.",
     error: "Lo siento, algo salió mal. Intenta de nuevo.",
+    noAnswer: "¡Buena pregunta! Se la pasé a un organizador, que te responderá aquí.",
   },
 };
 
@@ -187,7 +198,33 @@ const greetName = (lang: Lang, d: Draft) => {
   return d.leader.split(" ")[0];
 };
 
+// Side questions get a short AI answer, then the step they were on is asked
+// again. Everything else is the scripted flow below.
 export async function handle(channel: string, id: string, rawText: string, name?: string): Promise<Reply[]> {
+  const text = (rawText || "").trim();
+  const user = await getUser(`${channel}:${id}`);
+  const askable = user && !["new", "ask_language", "stopped"].includes(user.step) && user.lastPrompt;
+  if (askable && looksLikeQuestion(text) && !isExpectedAnswer(user, text)) {
+    const answer = await answerQuestion(text, user.lang ?? "en");
+    await log(`Question from ${user.name || "a contact"}${answer ? " answered by AI" : " sent to an organizer"}: "${text.slice(0, 40)}"`, answer ? "info" : "warn");
+    // Without an answer, still don't let a question be saved as a name or place.
+    return [{ text: answer ?? S[user.lang ?? "en"].noAnswer }, user.lastPrompt!];
+  }
+  const replies = await flow(channel, id, rawText, name);
+  const last = replies[replies.length - 1];
+  if (last) {
+    const u = await getUser(`${channel}:${id}`);
+    if (u) await saveUser({ ...u, lastPrompt: last });
+  }
+  return replies;
+}
+
+// A step that expects free text (names, places) shouldn't treat "Grace? Church" as a question.
+const isExpectedAnswer = (u: User, text: string) =>
+  !!u.lastPrompt?.buttons?.some((b) => is(text, b)) ||
+  (u.step === "ask_intro" && !!parseIntro(text).church) || (u.step === "registered" && parseCount(text).ok);
+
+async function flow(channel: string, id: string, rawText: string, name?: string): Promise<Reply[]> {
   const text = (rawText || "").trim();
   const cmd = text.replace(/^\//, "").split(/\s|@/)[0].toUpperCase();
   const key = `${channel}:${id}`;
@@ -272,7 +309,7 @@ export async function handle(channel: string, id: string, rawText: string, name?
       user.step = "ask_intro";
       await save(user);
       if (is(text, t.menuBtns[0], "register my church", "registrar mi iglesia", "register", "registrar")) return [{ text: t.intro }];
-      return handle(channel, id, text, name); // they went straight to the intro
+      return flow(channel, id, text, name); // they went straight to the intro
     }
 
     case "ask_intro": {
@@ -466,6 +503,76 @@ export async function handle(channel: string, id: string, rawText: string, name?
       return record(user, church, n, lang);
     }
 
+    // E4–E7: replies to messages an organizer sent from the dashboard.
+    case "approved": {
+      if (!church) break;
+      if (is(text, "text")) {
+        return [{ text: ORG.videoSummary, buttons: ["Got it, thank you!"] }];
+      }
+      if (is(text, "i need help", "help me", "need help")) {
+        await log(`${church.name} asked for help after approval (support task)`, "warn");
+        return [{ text: "Thanks for telling us. A regional organizer will message you here today. 🙏" }];
+      }
+      if (is(text, "got it, thank you!", "got it", "thanks", "thank you", ...YES)) {
+        user.step = "registered";
+        await save(user);
+        await log(`Starter pack acknowledged by ${church.name}`, "ok");
+        return [{ text: "Wonderful! I'll check in as Pentecost gets closer. 🙌" }];
+      }
+      user.step = "registered";
+      await save(user);
+      return handle(channel, id, text, name);
+    }
+
+    case "ask_followup_owner": {
+      if (!church) break;
+      if (is(text, "see full list")) return [{ text: ORG.checklist(church), buttons: ["Talk to an organizer"] }];
+      if (is(text, "talk to an organizer")) {
+        await log(`${church.name} asked to talk to an organizer (support task)`, "warn");
+        return [{ text: "An organizer will call you today. 🙏" }];
+      }
+      if (notAName(text)) return [{ text: ORG.askOwner }];
+      await saveChurch({ ...church, followupOwner: text });
+      user.step = "registered";
+      await save(user);
+      await log(`${church.name}: follow-up owner set (${text}) · 1 open essential: water & supervision`, "warn");
+      return [
+        {
+          text: `Thanks! Follow-up owner: ${text}. You asked for help with water and supervision. An organizer will call you today.`,
+          buttons: ["See full list", "Talk to an organizer"],
+        },
+      ];
+    }
+
+    case "followup_people": {
+      if (!church) break;
+      const n = church.baptisms ?? 0;
+      if (is(text, `Yes, all ${n}`, "yes all", ...YES)) {
+        user.step = "followup_guide";
+        await save(user);
+        await log(`${church.name}: follow-up confirmed for all ${n}`, "ok");
+        return [{ text: "Wonderful. Would you like the 30-day discipleship guide to share with them?", buttons: ["Send the guide", "No thanks"] }];
+      }
+      if (is(text, "Some still need one", "Need help")) {
+        user.step = "registered";
+        await save(user);
+        await log(`${church.name}: some baptized people still need a follow-up person (support task)`, "warn");
+        return [{ text: "Thank you for telling us. An organizer will help you match each person with someone from your church. 🙏" }];
+      }
+      return [{ text: ORG.followup(n), buttons: [`Yes, all ${n}`, "Some still need one", "Need help"] }];
+    }
+
+    case "followup_guide": {
+      if (!church) break;
+      user.step = "registered";
+      await save(user);
+      if (is(text, "Send the guide", ...YES)) {
+        await log(`30-day discipleship guide sent to ${church.name}`, "ok");
+        return [{ text: `Sent: ${ORG.guideUrl}\n\nWe'll check in again in 30 days. Reply STOP anytime to stop messages.` }];
+      }
+      return [{ text: "No problem. We'll check in again in 30 days. Reply STOP anytime to stop messages." }];
+    }
+
     case "dupe_count": {
       const n = user.draft.count;
       if (!church || n === undefined) break;
@@ -485,6 +592,84 @@ export async function handle(channel: string, id: string, rawText: string, name?
   user.draft = {};
   await save(user);
   return [{ text: church ? t.registered(church.name) : t.menu, buttons: church ? undefined : t.menuBtns }];
+}
+
+// Messages an organizer sends from the dashboard (mockups E4, E5, E6, E7).
+const ORG = {
+  packUrl: "https://faith-tech-gold.vercel.app/starter-pack",
+  guideUrl: "https://faith-tech-gold.vercel.app/discipleship-guide",
+  videoSummary:
+    "Welcome video in short: Pentecost, May 16, 2027 is a global day of baptism. Prepare each candidate with your church's usual teaching, keep the water safe and supervised, report your number here on the day, and make sure every person has someone from your church walking with them afterwards.",
+  askOwner: "Who will follow up with each person after they're baptized?",
+  checklist: (c: Church) =>
+    [
+      `Two weeks to go! Here's ${c.name}'s readiness list:`,
+      "",
+      "✅ Date, time and venue",
+      "✅ Event lead and day-of contact",
+      "✅ Volunteer roles",
+      "⏳ Candidate preparation: not yet",
+      "🆘 Safe water and supervision: need help",
+      "✅ Reporting owner",
+      c.followupOwner ? `✅ Follow-up owner: ${c.followupOwner}` : "⏳ Follow-up owner: not yet",
+    ].join("\n"),
+  followup: (n: number) => `Does each of the ${n} people baptized have a named person from your church following up with them?`,
+};
+
+const pastorOf = (c: Church) => {
+  const first = c.leader?.split(" ")[0] ?? "";
+  return /pastor/i.test(c.role ?? "") ? `Pastor ${first}` : first || "friend";
+};
+
+export type OrganizerAction = "approve" | "readiness" | "report" | "followup";
+
+export async function organizerMessage(churchId: string, action: OrganizerAction): Promise<{ user: User; replies: Reply[] } | { error: string }> {
+  const church = await getChurch(churchId);
+  if (!church) return { error: "church not found" };
+  const user = await getUser(church.contactId);
+  if (!user) return { error: "contact not found" };
+  if (user.step === "stopped") return { error: "contact opted out" };
+  const p = pastorOf(church);
+  let replies: Reply[] = [];
+  switch (action) {
+    case "approve":
+      await saveChurch({ ...church, status: "Confirmed" });
+      user.step = "approved";
+      replies = [
+        { text: `Good news, ${p}: ${church.name} is confirmed as a host church! 🎉` },
+        { text: "🎬 Welcome video · 2 min\nPurpose, what to expect, preparing candidates, and caring for them after.\n\nCan't play video? Reply TEXT for a short written summary." },
+        {
+          text: `Your host starter pack: planning checklist, baptism prep guide, invite graphics, event-day guide and follow-up resources.\n${ORG.packUrl}\n\nInvite your team. Share this link with volunteers so they join ${church.name} and pick a role:\nhttps://t.me/FaithTech_tribos_bot?start=team_${church.id}`,
+          buttons: ["Got it, thank you!", "I need help"],
+        },
+      ];
+      await log(`${church.name} approved as host · starter pack v1 sent`, "ok");
+      break;
+    case "readiness":
+      user.step = "ask_followup_owner";
+      replies = [{ text: ORG.checklist(church) }, { text: ORG.askOwner }];
+      await log(`Readiness check sent to ${church.name}`, "info");
+      break;
+    case "report":
+      user.step = "registered";
+      replies = [{ text: `Happy Pentecost, ${p}! When you're ready, how many people were baptized today?` }];
+      await log(`Pentecost report request sent to ${church.name}`, "info");
+      break;
+    case "followup": {
+      const n = church.baptisms ?? 0;
+      user.step = "followup_people";
+      replies = [
+        { text: `Thank you again for Sunday, ${p}! Two quick questions.` },
+        { text: ORG.followup(n), buttons: [`Yes, all ${n}`, "Some still need one", "Need help"] },
+      ];
+      await log(`Follow-up check sent to ${church.name}`, "info");
+      break;
+    }
+  }
+  user.draft = {};
+  user.lastPrompt = replies[replies.length - 1];
+  await saveUser(user);
+  return { user, replies };
 }
 
 async function record(user: User, church: Church, n: number, lang: Lang): Promise<Reply[]> {

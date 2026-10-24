@@ -1,15 +1,32 @@
 "use client";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 type Stats = {
   store: string;
   totals: { contacts: number; optedIn: number; optedOut: number; churches: number; reported: number; baptisms: number; flagged: number };
-  churches: { id: string; name: string; city: string; leader: string; baptisms?: number; possibleDuplicateOf?: string }[];
+  churches: { id: string; name: string; city: string; leader: string; baptisms?: number; possibleDuplicateOf?: string; status?: string; followupOwner?: string }[];
   activity: { at: string; text: string; kind: "ok" | "warn" | "info" }[];
 };
 
+const ORG_ACTIONS = [
+  ["approve", "Approve"],
+  ["readiness", "Readiness"],
+  ["report", "Ask for report"],
+  ["followup", "Follow-up"],
+] as const;
+
 export default function Dashboard() {
   const [s, setS] = useState<Stats | null>(null);
+  const [busy, setBusy] = useState("");
+  async function send(churchId: string, action: string) {
+    setBusy(churchId + action);
+    try {
+      const r = await fetch("/api/organizer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ churchId, action }) });
+      if (!r.ok) alert((await r.json()).error ?? "Send failed");
+    } finally {
+      setBusy("");
+    }
+  }
   useEffect(() => {
     let alive = true;
     const load = () => fetch("/api/stats", { cache: "no-store" }).then((r) => r.json()).then((d) => alive && setS(d)).catch(() => {});
@@ -42,11 +59,24 @@ export default function Dashboard() {
             <thead><tr><th>Church</th><th>City</th><th>Leader</th><th style={{ textAlign: "right" }}>Baptisms</th></tr></thead>
             <tbody>
               {s?.churches.length ? s.churches.map((c) => (
-                <tr key={c.id}>
-                  <td>{c.name}{c.possibleDuplicateOf && <span className="tag">possible duplicate</span>}</td>
+                <Fragment key={c.id}>
+                <tr>
+                  <td>{c.name}{c.possibleDuplicateOf && <span className="tag">possible duplicate</span>}<div className="sub" style={{ margin: 0 }}>{c.status ?? "Registered"}{c.followupOwner ? ` · follow-up: ${c.followupOwner}` : ""}</div></td>
                   <td>{c.city}</td><td>{c.leader}</td>
                   <td className="num">{c.baptisms ?? "–"}</td>
                 </tr>
+                <tr>
+                  <td colSpan={4} style={{ paddingTop: 0 }}>
+                    <div className="btns">
+                      {ORG_ACTIONS.map(([a, label]) => (
+                        <button key={a} disabled={busy === c.id + a} onClick={() => send(c.id, a)} style={{ padding: "4px 10px", fontSize: 13 }}>
+                          {busy === c.id + a ? "Sending…" : label}
+                        </button>
+                      ))}
+                    </div>
+                  </td>
+                </tr>
+                </Fragment>
               )) : <tr><td colSpan={4} className="sub">No churches yet. Message the bot to register one.</td></tr>}
             </tbody>
           </table>

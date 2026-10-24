@@ -5,7 +5,21 @@ import { Chat, Card, CardText, Actions, Button, type Thread } from "chat";
 import { createTelegramAdapter } from "@chat-adapter/telegram";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { handle, errorReply, type Reply } from "./bot";
-import { webhookSecret } from "./telegram";
+import { webhookSecret, tg } from "./telegram";
+
+const seen = new Set<string>();
+const cleared = new Set<string>();
+
+// The first version of the bot left a reply keyboard ("YES") on some chats.
+// Telegram only removes it with a message, so send one and delete it.
+async function clearOldKeyboard(chatId: string) {
+  if (cleared.has(chatId)) return;
+  cleared.add(chatId);
+  try {
+    const sent = (await tg("sendMessage", { chat_id: chatId, text: "…", reply_markup: { remove_keyboard: true } })) as { result?: { message_id: number } };
+    if (sent.result) await tg("deleteMessage", { chat_id: chatId, message_id: sent.result.message_id });
+  } catch {}
+}
 
 // Built on first request so the build doesn't need the token.
 let instance: ReturnType<typeof createBot> | undefined;
@@ -21,6 +35,10 @@ function createBot() {
   });
 
   bot.onDirectMessage(async (thread, message) => {
+    // Telegram can redeliver an update; answer each message once.
+    if (seen.has(message.id)) return;
+    seen.add(message.id);
+    await clearOldKeyboard(message.author.userId);
     await respond(thread, message.author.userId, message.text ?? "", message.author.fullName);
   });
 
@@ -32,12 +50,30 @@ function createBot() {
   return bot;
 }
 
+const EMOJI: Record<string, string> = {
+  English: "🇺🇸", Español: "🇪🇸",
+  "Yes, send updates": "✅", "Sí, envíenme mensajes": "✅", "No thanks": "🚫", "No, gracias": "🚫",
+  "Register my church": "⛪", "Registrar mi iglesia": "⛪", "Talk to an organizer": "💬", "Hablar con un organizador": "💬",
+  "Lead pastor": "🙏", "Pastor principal": "🙏", "Event coordinator": "📋", Coordinador: "📋", Other: "✏️", Otro: "✏️",
+  "Host our own event": "🏠", Organizar: "🏠", "Join another church": "🤝", "Unirnos a otro": "🤝", "Help me decide": "🤔", "Necesito ayuda": "🤔",
+  "Yes, that's right": "✅", "Sí, es correcto": "✅", Yes: "✅", "Sí": "✅", "Fix something": "✏️", "Corregir algo": "✏️",
+  Fix: "✏️", Corregir: "✏️", "Same report": "🔁", "Es el mismo": "🔁", "Got it, thank you!": "🙌", "I need help": "🆘",
+  "See full list": "📋", "Send the guide": "📖", "Some still need one": "⏳", "Need help": "🆘",
+};
+const label = (b: string) => {
+  const e = EMOJI[b] ?? (/^(Yes|Sí), \d+$/.test(b) ? "✅" : /^\d+ (more|is right)$|^Son \d+ más$|^\d+ es correcto$/.test(b) ? "➕" : "");
+  return e ? `${e} ${b}` : b;
+};
+
 // A reply with buttons becomes a card; each button's value is the same word a
-// user could type, so typed replies keep working.
-const toPostable = (r: Reply) =>
-  r.buttons?.length
-    ? Card({ children: [CardText(r.text), Actions(r.buttons.map((b) => Button({ id: "r", value: b, label: b })))] })
-    : r.text;
+// user could type, so typed replies keep working. Short pairs share a row,
+// anything longer gets a row per button so Telegram doesn't truncate labels.
+export const toPostable = (r: Reply) => {
+  if (!r.buttons?.length) return r.text;
+  const btns = r.buttons.map((b) => Button({ id: "r", value: b, label: label(b) }));
+  const oneRow = btns.length <= 2 && r.buttons.every((b) => b.length <= 14);
+  return Card({ children: [CardText(r.text), ...(oneRow ? [Actions(btns)] : btns.map((b) => Actions([b])))] });
+};
 
 async function respond(thread: Thread, userId: string, text: string, name?: string) {
   try {
@@ -47,4 +83,13 @@ async function respond(thread: Thread, userId: string, text: string, name?: stri
     console.error(e);
     await thread.post(errorReply().text);
   }
+}
+
+// Organizer-initiated messages (dashboard buttons) go out through Chat SDK too,
+// so button taps on them come back through onAction.
+export async function sendToTelegramUser(userId: string, replies: Reply[]) {
+  const bot = getBot();
+  await bot.initialize();
+  const thread = await bot.openDM(userId);
+  for (const r of replies) await thread.post(toPostable(r));
 }
