@@ -43,7 +43,19 @@ export function parseCount(input: string): CountResult {
 // "I'm Pastor Ramon Dela Cruz from Grace Fellowship in Tacloban"
 // "hola soy el pastor Rubén Quispe, mi iglesia es Luz del Valle en Cusco"
 // "Grace Fellowship, Ramon Dela Cruz, Tacloban"
+// "vintage church" -> "Vintage Church". Text with any capitals is left as typed.
+const SMALL = new Set(["de", "del", "la", "las", "los", "el", "y", "of", "the", "and", "in", "en"]);
+export const nice = (s?: string) =>
+  s && s === s.toLowerCase()
+    ? s.replace(/\p{L}+/gu, (w, i: number) => (i > 0 && SMALL.has(w) ? w : w[0].toUpperCase() + w.slice(1)))
+    : s;
+
 export function parseIntro(input: string): Draft {
+  const d = parseIntroRaw(input);
+  return { ...d, church: nice(d.church), leader: nice(d.leader), city: nice(d.city) };
+}
+
+function parseIntroRaw(input: string): Draft {
   const t = input.trim().replace(/[.!]+$/, "");
   const clean = (s?: string) => s?.trim().replace(/^[,\s]+|[,\s]+$/g, "");
   const pastor = (s?: string) => {
@@ -327,7 +339,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
       }
       if (notAName(text)) return [{ text: t.intro }];
       // Couldn't split it: treat it as the church name and ask the rest.
-      user.draft.church = text;
+      user.draft.church = nice(text);
       user.step = "ask_city";
       await save(user);
       return [{ text: t.askCity(text) }];
@@ -335,7 +347,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
 
     case "ask_church": {
       if (notAName(text)) return [{ text: t.badName }];
-      user.draft.church = text;
+      user.draft.church = nice(text);
       user.step = "ask_city";
       await save(user);
       return [{ text: t.askCity(text) }];
@@ -343,7 +355,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
 
     case "ask_city": {
       if (notAName(text)) return [{ text: t.askCity(user.draft.church ?? "") }];
-      user.draft.city = text;
+      user.draft.city = nice(text);
       user.step = "ask_leader";
       await save(user);
       return [{ text: t.askLeader }];
@@ -352,7 +364,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
     case "ask_leader": {
       if (notAName(text)) return [{ text: t.askLeader }];
       const p = parseIntro(`soy ${text} de x en y`);
-      user.draft.leader = p.leader ?? text;
+      user.draft.leader = nice(p.leader ?? text);
       user.draft.pastorTitle = p.pastorTitle;
       user.step = "ask_role";
       await save(user);
@@ -430,7 +442,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
       );
       if (!m) return [{ text: t.whatFix }];
       const field = m[1].toLowerCase();
-      const value = m[2].trim();
+      const value = ["role", "rol", "email", "correo"].includes(field) ? m[2].trim() : nice(m[2].trim())!;
       const map: Record<string, keyof Draft> = {
         church: "church", iglesia: "church", city: "city", town: "city", location: "city", ciudad: "city", lugar: "city",
         name: "leader", pastor: "leader", nombre: "leader", role: "role", rol: "role", email: "email", correo: "email",
