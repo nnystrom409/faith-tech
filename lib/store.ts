@@ -204,3 +204,21 @@ export async function listActivity(): Promise<Activity[]> {
   const vals = (await redis(["LRANGE", P + "activity", 0, 49])) as string[];
   return vals.map((v) => JSON.parse(v) as Activity);
 }
+
+// Generic records for features that keep their own bucket (e.g. "readiness").
+const memRecords: Map<string, unknown> = ((g as unknown as { __rec?: Map<string, unknown> }).__rec ??= new Map());
+
+export async function getRecord<T>(bucket: string, id: string): Promise<T | undefined> {
+  const key = `${bucket}:${id}`;
+  if (storeKind === "supabase") return viaSb(() => sbGet<T>(bucket, id), () => memRecords.get(key) as T | undefined);
+  if (storeKind === "memory") return memRecords.get(key) as T | undefined;
+  const raw = (await redis(["HGET", P + bucket, id])) as string | null;
+  return raw ? (JSON.parse(raw) as T) : undefined;
+}
+
+export async function putRecord<T>(bucket: string, id: string, data: T) {
+  memRecords.set(`${bucket}:${id}`, data);
+  if (storeKind === "supabase") return void (await viaSb(() => sbPut(bucket, id, data), () => null));
+  if (storeKind === "memory") return;
+  await redis(["HSET", P + bucket, id, JSON.stringify(data)]);
+}
