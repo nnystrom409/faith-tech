@@ -21,6 +21,10 @@ export async function tg(method: string, body: unknown) {
 
 const LABELS: Record<string, string> = { YES: "✅ Yes", EDIT: "✏️ Edit", NO: "✏️ Change", STOP: "🚫 No thanks", HELP: "❓ Help" };
 
+// Short pairs share a row; anything longer gets a row per button.
+const keyboard = <T extends { text: string }>(btns: T[]) =>
+  btns.length <= 2 && btns.every((b) => b.text.length <= 16) ? [btns] : btns.map((b) => [b]);
+
 // Buttons render as inline keyboards; the tap comes back as a callback_query
 // whose data is the same word a user could type, so typed replies still work.
 export async function sendReply(chatId: number | string, r: Reply) {
@@ -28,7 +32,7 @@ export async function sendReply(chatId: number | string, r: Reply) {
     chat_id: chatId,
     text: r.text,
     reply_markup: r.buttons
-      ? { inline_keyboard: [r.buttons.map((b) => ({ text: LABELS[b] ?? b, callback_data: b }))] }
+      ? { inline_keyboard: keyboard(r.buttons.map((b) => ({ text: LABELS[b] ?? b, callback_data: b }))) }
       : { remove_keyboard: true },
   });
 }
