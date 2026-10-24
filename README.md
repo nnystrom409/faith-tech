@@ -34,7 +34,7 @@ To run the Telegram bot on Vercel:
 
 1. In Telegram, message @BotFather → `/newbot` → copy the token.
 2. Import this repo on Vercel and set `TELEGRAM_BOT_TOKEN`.
-3. Optional: add Upstash Redis from the Vercel Marketplace (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) so data is shared across instances. Without it, data lives in memory.
+3. Storage: set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` (tables `ft_records` and `ft_activity`, RLS on) so the bot and the dashboard share one database. Upstash Redis (`KV_REST_API_URL`, `KV_REST_API_TOKEN`) also works. Without either, data lives in memory.
 4. Open `https://<your-app>.vercel.app/api/telegram/setup` once. It points the bot's webhook at the deployment and returns the bot's t.me link.
 
 ## What works / what does not yet
