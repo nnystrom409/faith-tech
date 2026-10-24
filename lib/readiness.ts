@@ -1,8 +1,8 @@
 // One readiness checklist per church, shared by the Telegram bot and /pack/plan.
-// Stored in its own bucket ("readiness", id = church id) so a web tap and a bot
-// saveChurch never overwrite each other.
+// Each item is its own record (bucket "readiness", id = "<churchId>.<key>"), so
+// two taps on different items, or a tap and a bot saveChurch, never overwrite each other.
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { getRecord, putRecord, type Church, type Lang } from "./store";
+import { listRecords, putRecord, type Church, type Lang } from "./store";
 
 export type ItemStatus = "complete" | "not_yet" | "need_help" | "na";
 export type ItemKey = (typeof READINESS_ITEMS)[number]["key"];
@@ -36,17 +36,23 @@ const isKey = (k: string): k is ItemKey => READINESS_ITEMS.some((i) => i.key ===
 export const isStatus = (s: string): s is ItemStatus => (STATUSES as string[]).includes(s);
 export const statusOf = (r: Readiness, key: ItemKey): ItemStatus => r.items[key]?.status ?? "not_yet";
 
+type ItemRecord = { churchId: string; key: ItemKey; status: ItemStatus; by: "web" | "telegram"; at: string };
+
 export async function getReadiness(churchId: string): Promise<Readiness> {
-  return (await getRecord<Readiness>("readiness", churchId)) ?? { churchId, items: {} };
+  const recs = (await listRecords<ItemRecord>("readiness", `${churchId}.`)).filter((x) => x.churchId === churchId);
+  const r: Readiness = { churchId, items: {} };
+  for (const x of recs) {
+    r.items[x.key] = { status: x.status, by: x.by, at: x.at };
+    if (!r.updatedAt || x.at > r.updatedAt) r.updatedAt = x.at;
+  }
+  return r;
 }
 
 export async function setItem(churchId: string, key: string, status: ItemStatus, by: "web" | "telegram"): Promise<Readiness> {
   if (!isKey(key)) throw new Error(`unknown readiness item: ${key}`);
-  const r = await getReadiness(churchId);
-  const at = new Date().toISOString();
-  const next: Readiness = { churchId, items: { ...r.items, [key]: { status, by, at } }, updatedAt: at };
-  await putRecord("readiness", churchId, next);
-  return next;
+  const rec: ItemRecord = { churchId, key, status, by, at: new Date().toISOString() };
+  await putRecord("readiness", `${churchId}.${key}`, rec);
+  return getReadiness(churchId);
 }
 
 // Ready only when every essential is Complete or Not applicable (brief: readiness gate).
@@ -73,15 +79,25 @@ export function checklistText(church: Church, r: Readiness, lang: Lang = "en") {
 }
 
 // Signed link so a church opens its own checklist with no login.
-const secret = () => process.env.PACK_LINK_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET_TOKEN || process.env.TELEGRAM_BOT_TOKEN || "dev-only-secret";
-export const signChurch = (churchId: string) => createHmac("sha256", secret()).update(`plan:${churchId}`).digest("base64url").slice(0, 22);
+// Fails closed in production when no secret is set; the dev fallback is for local runs only.
+const secret = () =>
+  process.env.PACK_LINK_SECRET || process.env.TELEGRAM_WEBHOOK_SECRET_TOKEN || process.env.TELEGRAM_BOT_TOKEN ||
+  (process.env.NODE_ENV === "production" ? undefined : "dev-only-secret");
+export const signChurch = (churchId: string) => {
+  const s = secret();
+  return s ? createHmac("sha256", s).update(`plan:${churchId}`).digest("base64url").slice(0, 22) : undefined;
+};
 export function verifyChurch(churchId: string | undefined, key: string | undefined): churchId is string {
-  if (!churchId || !key) return false;
-  const a = Buffer.from(signChurch(churchId));
+  const expected = churchId && key ? signChurch(churchId) : undefined;
+  if (!expected || !key) return false;
+  const a = Buffer.from(expected);
   const b = Buffer.from(key);
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
 const baseUrl = () => process.env.PUBLIC_BASE_URL || "https://faith-tech-gold.vercel.app";
-export const packPlanUrl = (church: Pick<Church, "id">) =>
-  `${baseUrl()}/pack/plan?${new URLSearchParams({ c: church.id, k: signChurch(church.id) })}`;
+// Falls back to the demo page if no secret is configured.
+export const packPlanUrl = (church: Pick<Church, "id">) => {
+  const k = signChurch(church.id);
+  return k ? `${baseUrl()}/pack/plan?${new URLSearchParams({ c: church.id, k })}` : `${baseUrl()}/pack/plan`;
+};
