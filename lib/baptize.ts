@@ -10,7 +10,9 @@ export async function registerChurch(c: Church) {
 // Reports add up: a church can report more than once on the day.
 export async function saveCount(c: Church, count: number) {
   const at = new Date().toISOString();
-  const reports = [...(c.reports ?? []), { count, at }];
+  // Churches saved before report history existed keep their total as one report.
+  const history = c.reports ?? (c.baptisms ? [{ count: c.baptisms, at: c.reportedAt ?? at }] : []);
+  const reports = [...history, { count, at }];
   const updated = { ...c, reports, baptisms: reports.reduce((s, r) => s + r.count, 0), reportedAt: at };
   await saveChurch(updated);
   return updated;
