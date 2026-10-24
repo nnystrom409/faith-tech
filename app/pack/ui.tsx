@@ -70,7 +70,7 @@ export function Shell({ title, sub, back, children }: { title?: string; sub?: st
 
   return (
     <div className="pk">
-      <div className="pk-col">
+      <div className={`pk-col ${tabs.length ? "" : "notabs"}`}>
         <header className="pk-top">
           {back ? (
             <Link href={role === "vol" ? "/pack/volunteer" : "/pack"} aria-label="Back to home" style={{ display: "flex", width: 44, height: 44, margin: "-6px -6px -6px -10px", alignItems: "center", justifyContent: "center", color: "var(--ink)" }}>

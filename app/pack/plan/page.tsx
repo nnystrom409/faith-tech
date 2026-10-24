@@ -42,7 +42,7 @@ export default function Plan() {
         </p>
       </div>
 
-      <div className="pk-card" style={{ gap: 0 }}>
+      <div className="pk-card wide" style={{ gap: 0 }}>
         <p className="pk-k" style={{ paddingBottom: 6 }}>Before 9 May</p>
         {ITEMS.map((it, i) => {
           const st = STATES[s[i]];
