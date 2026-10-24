@@ -5,7 +5,7 @@
 // model, decides what is saved.
 import { getUser, saveUser, listChurches, getChurch, saveChurch, log, type User, type Church, type Lang, type Draft } from "./store";
 import { registerChurch, saveCount } from "./baptize";
-import { findNear, EVENTS } from "./events";
+import { findNear, listedEvents } from "./events";
 import { answerQuestion, looksLikeQuestion } from "./ai";
 
 export type Reply = { text: string; buttons?: string[]; link?: { label: string; url: string } };
@@ -112,6 +112,8 @@ const S = {
     check: "Please check your details:",
     labels: { church: "Church", leader: "Pastor", role: "Role", city: "Location", part: "Taking part", email: "Email" },
     confirmBtns: ["Yes, that's right", "Fix something"],
+    listAsk: "May we list your baptism event (church name and city only) so people nearby can find it? Contact details are never shown.",
+    listBtns: ["Yes, list it", "No, keep it private"],
     whatFix: "What should I change? For example: The church is Grace Fellowship Tacloban",
     updated: (v: string) => `Updated: ${v}. Everything else correct?`,
     yesFix: ["Yes", "Fix something"],
@@ -167,6 +169,8 @@ const S = {
     check: "Por favor confirma tus datos:",
     labels: { church: "Iglesia", leader: "Pastor", role: "Rol", city: "Lugar", part: "Evento", email: "Correo" },
     confirmBtns: ["Sí, es correcto", "Corregir algo"],
+    listAsk: "¿Podemos publicar tu evento de bautismo (solo el nombre de la iglesia y la ciudad) para que personas cercanas lo encuentren? Nunca mostramos datos de contacto.",
+    listBtns: ["Sí, publicarlo", "No, mantener privado"],
     whatFix: "¿Qué debo cambiar? Por ejemplo: La iglesia es Luz del Valle Cusco",
     updated: (v: string) => `Actualizado: ${v}. ¿Todo lo demás está bien?`,
     yesFix: ["Sí", "Corregir algo"],
@@ -414,6 +418,22 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
       if (is(text, ...t.skip)) user.draft.email = undefined;
       else if (/^\S+@\S+\.\S+$/.test(text)) user.draft.email = text;
       else return [{ text: t.email }];
+      // Only hosts have an event to list; a church joining another one skips this.
+      if (is(user.draft.part ?? "", t.partBtns[1])) {
+        user.draft.listed = false;
+        user.step = "confirm_church";
+        await save(user);
+        return [{ text: `${t.check}\n\n${lineOf(lang, user.draft)}`, buttons: t.confirmBtns }];
+      }
+      user.step = "ask_listed";
+      await save(user);
+      return [{ text: t.listAsk, buttons: t.listBtns }];
+    }
+
+    case "ask_listed": {
+      if (is(text, t.listBtns[0], ...YES)) user.draft.listed = true;
+      else if (is(text, t.listBtns[1], "private", "privado", ...NO)) user.draft.listed = false;
+      else return [{ text: t.listAsk, buttons: t.listBtns }];
       user.step = "confirm_church";
       await save(user);
       return [{ text: `${t.check}\n\n${lineOf(lang, user.draft)}`, buttons: t.confirmBtns }];
@@ -439,6 +459,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
         role: d.role,
         part: d.part,
         email: d.email,
+        listed: d.listed === true,
         lang,
         contactId: user.id,
         registeredAt: new Date().toISOString(),
@@ -460,7 +481,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
     }
 
     case "find_city": {
-      const found = findNear(text);
+      const found = await findNear(text);
       const place = nice(text) ?? text;
       if (!found.length) {
         user.step = "menu";
@@ -480,7 +501,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
         await save(user);
         return [{ text: t.findAsk }];
       }
-      const ev = EVENTS.find((e) => e.listed && is(text, e.church));
+      const ev = (await listedEvents()).find((e) => is(text, e.church));
       if (!ev) {
         // Typed a place instead of tapping a church: search again.
         user.step = "find_city";

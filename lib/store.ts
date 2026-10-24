@@ -15,6 +15,7 @@ export type Step =
   | "ask_role"
   | "ask_part"
   | "ask_email"
+  | "ask_listed"
   | "confirm_church"
   | "fix_church"
   | "registered"
@@ -39,6 +40,7 @@ export type Draft = {
   role?: string;
   part?: string;
   email?: string;
+  listed?: boolean;
   count?: number;
 };
 
@@ -69,6 +71,7 @@ export type Church = {
   contactId: string;
   registeredAt: string;
   possibleDuplicateOf?: string;
+  listed?: boolean; // agreed to show the event in "Find a baptism near me"
   status?: "Registered" | "Confirmed" | "Ready";
   followupOwner?: string;
   needsHelp?: string[];
