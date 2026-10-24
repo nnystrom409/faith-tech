@@ -42,6 +42,9 @@ const consentPrompt = (): Reply => ({
   buttons: ["YES", "STOP"],
 });
 
+// A bare yes/no/ok is a stray tap or repeat, not a name or place.
+const notAnAnswer = (t: string) => t.length < 2 || t.length > 120 || YES.test(t) || NO.test(t) || /^\/?start$/i.test(t);
+
 const reportPrompt = (c: Church): Reply => ({
   text:
     `${c.name} is registered ✅\n\n` +
@@ -112,7 +115,7 @@ export async function handle(channel: string, id: string, rawText: string, name?
     }
 
     case "ask_church": {
-      if (text.length < 2 || text.length > 120) return [{ text: "Please send your church's name." }];
+      if (notAnAnswer(text)) return [{ text: "Please type your church's name, for example: Iglesia Fuente de Vida." }];
       user.draft.church = text;
       user.step = "ask_city";
       await save(user);
@@ -120,7 +123,7 @@ export async function handle(channel: string, id: string, rawText: string, name?
     }
 
     case "ask_city": {
-      if (text.length < 2 || text.length > 120) return [{ text: "Please send your city or town." }];
+      if (notAnAnswer(text)) return [{ text: "Please type the city or town, for example: Los Angeles." }];
       user.draft.city = text;
       user.step = "ask_leader";
       await save(user);
@@ -128,7 +131,7 @@ export async function handle(channel: string, id: string, rawText: string, name?
     }
 
     case "ask_leader": {
-      if (text.length < 2 || text.length > 120) return [{ text: "Please send the pastor or coordinator's name." }];
+      if (notAnAnswer(text)) return [{ text: "Please type the pastor or coordinator's name, for example: Pastor Ana." }];
       user.draft.leader = text;
       user.step = "confirm_church";
       await save(user);
