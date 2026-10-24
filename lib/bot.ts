@@ -234,9 +234,14 @@ export async function handle(channel: string, id: string, rawText: string, name?
     const answer = await answerQuestion(text, user.lang ?? "en");
     await log(`Question from ${user.name || "a contact"}${answer ? " answered by AI" : " sent to an organizer"}: "${text.slice(0, 40)}"`, answer ? "info" : "warn");
     // Without an answer, still don't let a question be saved as a name or place.
-    return [{ text: answer ?? S[user.lang ?? "en"].noAnswer }, user.lastPrompt!];
+    // Once registered or approved, just answer; the starter pack was already sent on approval.
+    const done = ["registered", "approved"].includes(user.step);
+    return [{ text: answer ?? S[user.lang ?? "en"].noAnswer }, ...(done ? [] : [user.lastPrompt!])];
   }
-  const replies = await flow(channel, id, rawText, name);
+  // A brand-new contact who opens with a question gets the answer, then the welcome.
+  const fresh = !user || user.step === "new";
+  const answer = fresh && !text.startsWith("/") && looksLikeQuestion(text) ? await answerQuestion(text, "en") : null;
+  const replies = [...(answer ? [{ text: answer }] : []), ...(await flow(channel, id, rawText, name))];
   const last = replies[replies.length - 1];
   if (last) {
     const u = await getUser(`${channel}:${id}`);
