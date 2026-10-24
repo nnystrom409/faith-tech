@@ -33,6 +33,8 @@ export async function sendReply(chatId: number | string, r: Reply) {
     text: r.text,
     reply_markup: r.buttons
       ? { inline_keyboard: keyboard(r.buttons.map((b) => ({ text: LABELS[b] ?? b, callback_data: b }))) }
-      : { remove_keyboard: true },
+      : r.link
+        ? { inline_keyboard: [[{ text: r.link.label, url: r.link.url }]] }
+        : { remove_keyboard: true },
   });
 }
