@@ -1,3 +1,5 @@
+import { listChurches } from "./store";
+
 // Test baptism events for "Find a baptism near me". Only events whose host
 // church agreed to be listed are shown, and no contact details are ever shared:
 // interest goes to organizers, who connect the person with the church.
@@ -17,11 +19,21 @@ export const EVENTS: BaptismEvent[] = [
 const n = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
 const ALIASES: Record<string, string> = { la: "los angeles", sd: "san diego", oc: "orange county", "santa monica ca": "santa monica" };
 
+// Test events plus registered churches that agreed to be listed. A possible
+// duplicate stays hidden until an organizer reviews it.
+export async function listedEvents(): Promise<BaptismEvent[]> {
+  const churches = await listChurches().catch(() => []);
+  const real = churches
+    .filter((c) => c.listed && !c.possibleDuplicateOf)
+    .map((c) => ({ id: c.id, church: c.name, city: c.city, area: c.city, when: "Pentecost Sun, May 16 · time to be confirmed", listed: true }));
+  return [...real, ...EVENTS.filter((e) => e.listed)];
+}
+
 // Same city first, then the same wider area.
-export function findNear(place: string): BaptismEvent[] {
+export async function findNear(place: string): Promise<BaptismEvent[]> {
   const q = ALIASES[n(place)] ?? n(place);
   if (q.length < 2) return [];
-  const listed = EVENTS.filter((e) => e.listed);
+  const listed = await listedEvents();
   const city = listed.filter((e) => n(e.city).includes(q) || q.includes(n(e.city)));
   const area = city.length ? listed.filter((e) => n(e.area) === n(city[0].area)) : listed.filter((e) => n(e.area).includes(q) || q.includes(n(e.area)));
   return [...new Map([...city, ...area].map((e) => [e.id, e])).values()].slice(0, 3);
