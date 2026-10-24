@@ -1,0 +1,312 @@
+<title>Baptize Onboarding Bot Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: single reading column; the diagram breaks wider and scrolls on its own on phones */
+:root {
+  --bg: #f6f8fa;
+  --surface: #ffffff;
+  --fg: #142230;
+  --muted: #566676;
+  --line: #d5dde5;
+  --accent: #0d6aa8;      /* baptism water blue */
+  --accent-soft: #e3f0f9;
+  --wa: #1f9d55;          /* channel green */
+  --warn: #a35a00;
+  --warn-soft: #fbf0e0;
+  --good: #1f7a46;
+  --good-soft: #e3f4ea;
+  --code-bg: #eef2f6;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Figtree", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e151c; --surface: #16202a; --fg: #e4ebf1; --muted: #93a3b3; --line: #2a3846;
+  --accent: #5fb2ea; --accent-soft: #15324a; --wa: #4cc985; --warn: #f0b060; --warn-soft: #3a2a12;
+  --good: #63d08f; --good-soft: #14321f; --code-bg: #1b2833; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e151c; --surface: #16202a; --fg: #e4ebf1; --muted: #93a3b3; --line: #2a3846;
+  --accent: #5fb2ea; --accent-soft: #15324a; --wa: #4cc985; --warn: #f0b060; --warn-soft: #3a2a12;
+  --good: #63d08f; --good-soft: #14321f; --code-bg: #1b2833; color-scheme: dark; }
+
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.6 var(--font-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+main { max-width: 1040px; margin: 0 auto; padding-block: 40px 72px; display: flex; flex-direction: column; gap: 44px; }
+.prose { max-width: 68ch; }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(30px, 5vw, 44px); font-weight: 700; letter-spacing: -0.01em; }
+h2 { font-size: 24px; font-weight: 600; margin-bottom: 12px; }
+h3 { font-size: 17px; font-weight: 600; }
+p { margin: 0 0 12px; }
+.eyebrow { font: 500 12px/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--accent); margin-bottom: 12px; }
+.lede { font-size: 18px; color: var(--muted); margin-top: 14px; }
+code, pre { font-family: var(--font-mono); font-size: 13.5px; }
+:not(pre) > code { background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+
+.answer { background: var(--accent-soft); border-radius: 10px; padding: 22px 24px; display: grid; gap: 8px; }
+.answer strong { color: var(--accent); }
+
+.diagram-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+.diagram-wrap svg { display: block; min-width: 860px; width: 100%; height: auto; }
+svg text { font-family: var(--font-body); fill: var(--fg); }
+svg .mono { font-family: var(--font-mono); }
+svg .muted { fill: var(--muted); }
+svg .acc { fill: var(--accent); }
+svg .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg .zone { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 0; }
+svg .inner { fill: var(--bg); stroke: var(--line); stroke-width: 1.2; }
+svg .key { fill: var(--surface); stroke: var(--accent); stroke-width: 2; }
+svg .wire { fill: none; stroke: var(--muted); stroke-width: 1.6; }
+svg .wire-alt { fill: none; stroke: var(--muted); stroke-width: 1.6; stroke-dasharray: 5 4; }
+svg .arrowhead { fill: var(--muted); }
+svg .wa { fill: var(--wa); }
+svg .optA { fill: var(--good-soft); stroke: var(--good); stroke-width: 1.5; }
+svg .optB { fill: var(--surface); stroke: var(--accent); stroke-width: 1.5; stroke-dasharray: 6 4; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 14.5px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 13px; color: var(--muted); }
+thead th:nth-child(n+2) { color: var(--fg); font-family: var(--font-display); font-size: 15px; }
+td:first-child { color: var(--muted); width: 26%; }
+.pill { display: inline-block; font: 500 12px/1 var(--font-mono); padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+.yes { background: var(--good-soft); color: var(--good); }
+.no { background: var(--warn-soft); color: var(--warn); }
+.pick { background: var(--accent); color: var(--surface); }
+
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+.cols > * { min-width: 0; }
+ol, ul { margin: 0; padding-left: 20px; display: grid; gap: 8px; }
+.steps li::marker { font-family: var(--font-mono); color: var(--accent); }
+.time { font: 500 12px var(--font-mono); color: var(--muted); }
+
+pre { background: var(--code-bg); border-radius: 8px; padding: 16px; overflow-x: auto; margin: 0; line-height: 1.55; }
+.c { color: var(--muted); }
+footer { font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 16px; }
+</style>
+
+<main>
+  <header class="prose">
+    <div class="eyebrow">FaithTech SoCal · Track 1 · MVP</div>
+    <h1>How the onboarding bot is built</h1>
+    <p class="lede">One Next.js app on Vercel. Chat SDK receives WhatsApp and SMS messages, AI SDK reads what the pastor wrote, plain TypeScript decides what gets saved, and a single store interface lets us run with or without a database.</p>
+  </header>
+
+  <section class="answer prose" aria-label="Short answer">
+    <h2 style="margin:0">Can the prototype run without a database?</h2>
+    <p style="margin:0"><strong>Yes.</strong> For a 3‑minute demo with test data, no database is needed. The one catch is that plain in‑memory state only works when a single process handles every request. On Vercel, separate function instances don't share memory, so a webhook and the dashboard can see different data. Use <strong>in‑memory</strong> if you demo from <code>next dev</code> plus a tunnel, or <strong>Upstash Redis</strong> (one click in the Vercel Marketplace) if the demo runs on a deployed URL.</p>
+    <p style="margin:0">Supabase becomes necessary once organizers log in, data must outlive the event, or the dashboard needs real queries across churches and events. Write the code against one <code>store</code> interface now and the switch is a single file later.</p>
+  </section>
+
+  <section>
+    <h2>Architecture</h2>
+    <div class="diagram-wrap">
+      <svg viewBox="0 0 1000 580" role="img" aria-labelledby="dgTitle dgDesc">
+        <title id="dgTitle">MVP architecture diagram</title>
+        <desc id="dgDesc">A pastor's phone sends WhatsApp or SMS messages through Meta's Cloud API or Twilio to a webhook route in a Next.js app on Vercel. The Chat SDK bot runs a conversation flow, uses AI SDK to extract fields, validates them in code, and saves through a mock Baptize client into a store interface. The store is backed either by memory or Redis with no database, or by Supabase Postgres. A dashboard page reads from the same store.</desc>
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" class="arrowhead"/>
+          </marker>
+        </defs>
+
+        <!-- Phone -->
+        <rect x="20" y="150" width="150" height="170" rx="22" class="box"/>
+        <text x="95" y="182" text-anchor="middle" font-size="14" font-weight="600">Pastor's phone</text>
+        <rect x="40" y="200" width="110" height="34" rx="17" class="inner"/>
+        <circle cx="58" cy="217" r="6" class="wa"/>
+        <text x="70" y="222" font-size="13">WhatsApp</text>
+        <rect x="40" y="244" width="110" height="34" rx="17" class="inner"/>
+        <text x="95" y="266" text-anchor="middle" font-size="13">SMS</text>
+        <text x="95" y="302" text-anchor="middle" font-size="11.5" class="muted">QR code or link starts it</text>
+
+        <!-- Providers -->
+        <rect x="210" y="150" width="160" height="62" rx="8" class="box"/>
+        <text x="290" y="176" text-anchor="middle" font-size="13.5" font-weight="600">WhatsApp Cloud API</text>
+        <text x="290" y="196" text-anchor="middle" font-size="11.5" class="muted">Meta test number</text>
+        <rect x="210" y="236" width="160" height="62" rx="8" class="box"/>
+        <text x="290" y="262" text-anchor="middle" font-size="13.5" font-weight="600">Twilio SMS</text>
+        <text x="290" y="282" text-anchor="middle" font-size="11.5" class="muted">fallback · Clearstream later</text>
+
+        <path d="M150,217 H210" class="wire" marker-end="url(#ah)" marker-start="url(#ah)"/>
+        <path d="M150,261 H210" class="wire" marker-end="url(#ah)" marker-start="url(#ah)"/>
+
+        <!-- Vercel zone -->
+        <rect x="400" y="20" width="580" height="400" rx="14" class="zone"/>
+        <text x="420" y="46" font-size="13" font-weight="600" class="acc mono">VERCEL · NEXT.JS APP</text>
+
+        <!-- Webhook route -->
+        <rect x="420" y="62" width="540" height="44" rx="8" class="box"/>
+        <text x="436" y="89" font-size="13" class="mono">app/api/webhooks/[platform]/route.ts</text>
+        <text x="944" y="89" text-anchor="end" font-size="12" class="muted">→ bot.webhooks[platform]</text>
+
+        <path d="M370,181 H392 V84 H420" class="wire" marker-end="url(#ah)"/>
+        <path d="M370,267 H392 V181" class="wire"/>
+        <text x="386" y="134" text-anchor="end" font-size="11" class="muted">webhook</text>
+
+        <!-- Chat SDK -->
+        <rect x="420" y="124" width="540" height="196" rx="10" class="box"/>
+        <text x="436" y="150" font-size="14" font-weight="600">Chat SDK bot</text>
+        <text x="944" y="150" text-anchor="end" font-size="11.5" class="muted mono">chat · @chat-adapter/whatsapp · /twilio</text>
+        <path d="M690,106 V124" class="wire" marker-end="url(#ah)"/>
+
+        <!-- Steps -->
+        <g font-size="12.5">
+          <rect x="436" y="168" width="120" height="96" rx="8" class="inner"/>
+          <text x="448" y="190" font-weight="600">Conversation</text>
+          <text x="448" y="206" font-weight="600">flow</text>
+          <text x="448" y="226" font-size="11" class="muted">consent → language</text>
+          <text x="448" y="241" font-size="11" class="muted">→ register → confirm</text>
+          <text x="448" y="256" font-size="11" class="muted">→ report</text>
+
+          <rect x="568" y="168" width="120" height="96" rx="8" class="key"/>
+          <text x="580" y="190" font-weight="600">AI SDK</text>
+          <text x="580" y="210" font-size="11" class="muted">generateObject</text>
+          <text x="580" y="225" font-size="11" class="muted">+ zod schema:</text>
+          <text x="580" y="240" font-size="11" class="muted">fields, language,</text>
+          <text x="580" y="255" font-size="11" class="muted">confidence</text>
+
+          <rect x="700" y="168" width="120" height="96" rx="8" class="inner"/>
+          <text x="712" y="190" font-weight="600">Validators</text>
+          <text x="712" y="210" font-size="11" class="muted">0–10,000 whole no.</text>
+          <text x="712" y="225" font-size="11" class="muted">duplicates</text>
+          <text x="712" y="240" font-size="11" class="muted">unknown number</text>
+          <text x="712" y="255" font-size="11" class="muted">STOP at any step</text>
+
+          <rect x="832" y="168" width="112" height="96" rx="8" class="inner"/>
+          <text x="844" y="190" font-weight="600" class="mono" font-size="12">baptize.ts</text>
+          <text x="844" y="206" font-size="11" class="muted">mock client</text>
+          <text x="844" y="226" font-size="11" class="muted mono">registerChurch()</text>
+          <text x="844" y="241" font-size="11" class="muted mono">saveCount()</text>
+          <text x="844" y="256" font-size="11" class="muted">swap for real API</text>
+        </g>
+        <path d="M556,216 H568" class="wire" marker-end="url(#ah)"/>
+        <path d="M688,216 H700" class="wire" marker-end="url(#ah)"/>
+        <path d="M820,216 H832" class="wire" marker-end="url(#ah)"/>
+        <text x="690" y="294" text-anchor="middle" font-size="12" class="muted">The AI proposes, code decides, and the pastor confirms before anything is saved.</text>
+
+        <!-- Store + dashboard -->
+        <rect x="560" y="352" width="260" height="48" rx="8" class="key"/>
+        <text x="690" y="374" text-anchor="middle" font-size="13" font-weight="600" class="mono">lib/store.ts</text>
+        <text x="690" y="391" text-anchor="middle" font-size="11" class="muted">one interface, two backends</text>
+        <path d="M888,264 V376 H820" class="wire" marker-end="url(#ah)"/>
+
+        <rect x="420" y="352" width="116" height="48" rx="8" class="box"/>
+        <text x="478" y="374" text-anchor="middle" font-size="13" font-weight="600" class="mono">/dashboard</text>
+        <text x="478" y="391" text-anchor="middle" font-size="11" class="muted">polls every 3s</text>
+        <path d="M560,376 H536" class="wire" marker-end="url(#ah)"/>
+
+        <!-- Options -->
+        <path d="M640,400 V452" class="wire" marker-end="url(#ah)"/>
+        <path d="M740,400 V426 H840 V452" class="wire-alt" marker-end="url(#ah)"/>
+
+        <rect x="400" y="454" width="285" height="106" rx="10" class="optA"/>
+        <text x="418" y="480" font-size="13" font-weight="600" class="mono" style="fill:var(--good)">A · NO DATABASE (TODAY)</text>
+        <text x="418" y="502" font-size="12.5">Local demo: in-memory Map</text>
+        <text x="418" y="522" font-size="12.5">Deployed demo: Upstash Redis</text>
+        <text x="418" y="542" font-size="11" class="muted">also holds Chat SDK thread state</text>
+
+        <rect x="700" y="454" width="280" height="106" rx="10" class="optB"/>
+        <text x="718" y="480" font-size="13" font-weight="600" class="mono acc">B · SUPABASE POSTGRES</text>
+        <text x="718" y="502" font-size="12.5">churches · contacts · events</text>
+        <text x="718" y="522" font-size="12.5">reports · consents · tasks</text>
+        <text x="718" y="542" font-size="11" class="muted">Baptize's own stack; add when needed</text>
+
+        <!-- LLM provider -->
+        <rect x="210" y="360" width="160" height="56" rx="8" class="box"/>
+        <text x="290" y="384" text-anchor="middle" font-size="13" font-weight="600">Model provider</text>
+        <text x="290" y="402" text-anchor="middle" font-size="11" class="muted">via AI Gateway</text>
+        <path d="M628,264 V336 H300 V360" class="wire-alt" marker-end="url(#ah)"/>
+      </svg>
+    </div>
+    <div class="legend">
+      <span>Solid line: request path used in the demo</span>
+      <span>Dashed line: optional or later</span>
+      <span>Blue outline: the two pieces that make this design work</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>The three storage options</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th></th><th>In‑memory</th><th>Upstash Redis</th><th>Supabase</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Setup time</td><td>0 min</td><td>~5 min (Marketplace, one env var)</td><td>~20–30 min (project, schema, keys)</td></tr>
+          <tr><td>Works on a deployed Vercel URL</td><td><span class="pill no">unreliable</span> instances don't share memory</td><td><span class="pill yes">yes</span></td><td><span class="pill yes">yes</span></td></tr>
+          <tr><td>Survives redeploys</td><td><span class="pill no">no</span></td><td><span class="pill yes">yes</span></td><td><span class="pill yes">yes</span></td></tr>
+          <tr><td>Chat SDK thread state</td><td><code>state-memory</code></td><td><code>state-redis</code></td><td>Redis still simplest for this</td></tr>
+          <tr><td>Dashboard totals and filters</td><td>loop over a Map</td><td>loop over keys, fine for test data</td><td>SQL: joins, counts, coverage</td></tr>
+          <tr><td>Organizer logins, row access</td><td><span class="pill no">no</span></td><td><span class="pill no">no</span></td><td><span class="pill yes">Auth + RLS</span></td></tr>
+          <tr><td>Judging fit with Baptize</td><td>fine if the store interface is shown</td><td>fine if the store interface is shown</td><td>strongest: their actual stack</td></tr>
+          <tr><td>Use it when</td><td><span class="pill pick">demo from laptop</span></td><td><span class="pill pick">demo from Vercel</span></td><td>after the hackathon</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="cols">
+    <div>
+      <h2>Plan for the next two hours</h2>
+      <ol class="steps">
+        <li>Scaffold with <code>npx create-chat-sdk@latest bot --adapter whatsapp memory</code>, deploy to Vercel at once so Meta has a public webhook URL. <span class="time">20 min</span></li>
+        <li>Write <code>lib/store.ts</code> with the memory backend and the conversation flow for consent, register, confirm, report. <span class="time">40 min</span></li>
+        <li>Add AI SDK extraction with a zod schema and the deterministic validators. <span class="time">25 min</span></li>
+        <li>Build <code>/dashboard</code> reading from the store. If it runs on Vercel, add Upstash Redis and switch the store backend. <span class="time">25 min</span></li>
+        <li>Commit <code>supabase/schema.sql</code> unwired, and say in the README that the store swaps to Supabase. Record a backup video. <span class="time">10 min</span></li>
+      </ol>
+    </div>
+    <div>
+      <h2>When Supabase becomes needed</h2>
+      <ul>
+        <li>Regional organizers and church teams sign in and should see only their own churches.</li>
+        <li>Records must be kept past the demo, with history of corrections to reported counts.</li>
+        <li>The dashboard needs readiness, reporting coverage and follow‑up across many churches and shared events.</li>
+        <li>Multiple churches report into one event and you need a guarantee of no double counting.</li>
+        <li>You want reminders scheduled from event dates, which fits a table plus a cron job.</li>
+      </ul>
+      <p style="margin-top:12px">None of these show up in a 3‑minute demo, which is why Option A is enough today.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>The store interface that keeps both doors open</h2>
+    <p class="prose">Every handler calls these functions and never touches storage directly. The memory version is about 40 lines. The Redis and Supabase versions implement the same signatures, and an env var picks which one loads.</p>
+<pre><code><span class="c">// lib/store.ts</span>
+export interface Store {
+  recordConsent(phone: string, channel: "whatsapp" | "sms"): Promise&lt;void&gt;;
+  optOut(phone: string): Promise&lt;void&gt;;
+  upsertChurch(input: ChurchInput): Promise&lt;Church&gt;;       <span class="c">// flags likely duplicates</span>
+  saveReport(churchId: string, count: number): Promise&lt;Report&gt;;
+  addTask(task: SupportTask): Promise&lt;void&gt;;              <span class="c">// low confidence, help requests</span>
+  dashboard(): Promise&lt;DashboardSnapshot&gt;;
+}
+
+export const store: Store =
+  process.env.STORE === "supabase" ? supabaseStore
+  : process.env.STORE === "redis"  ? redisStore
+  : memoryStore;</code></pre>
+  </section>
+
+  <section>
+    <h2>Files</h2>
+<pre><code>app/
+  api/webhooks/[platform]/route.ts   <span class="c">// hands requests to Chat SDK</span>
+  dashboard/page.tsx                 <span class="c">// live counts, flags, tasks</span>
+lib/
+  bot.ts          <span class="c">// new Chat({ adapters: { whatsapp, twilio }, state })</span>
+  flow.ts         <span class="c">// conversation steps and copy per language</span>
+  extract.ts      <span class="c">// AI SDK generateObject + zod schemas</span>
+  validate.ts     <span class="c">// 0–10,000, duplicates, STOP, unknown numbers</span>
+  baptize.ts      <span class="c">// mock: registerChurch(), saveCount()</span>
+  store.ts        <span class="c">// interface + memory / redis / supabase backends</span>
+supabase/schema.sql   <span class="c">// committed for the production path</span></code></pre>
+  </section>
+
+  <footer>Based on docs/build-brief.md and docs/tech-approach.md in nnystrom409/faith-tech. Test data only. Times are rough estimates for a 4:00 PM code freeze.</footer>
+</main>
