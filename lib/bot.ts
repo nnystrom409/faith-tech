@@ -258,7 +258,8 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
 
   if (is(text, "help", "/help", "ayuda")) return [{ text: t.help }];
 
-  if (cmd === "RESET" || (cmd === "START" && !user.churchId)) {
+  // START always begins again, like RESET, so a demo can rerun from the top.
+  if (cmd === "RESET" || cmd === "START") {
     user.step = "ask_language";
     user.draft = {};
     user.churchId = undefined;
@@ -446,7 +447,6 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
         await save(user);
         return [{ text: t.menu, buttons: t.menuBtns }];
       }
-      if (cmd === "START") return [{ text: t.registered(church.name) }];
       const parsed = parseCount(text);
       if (!parsed.ok) {
         await log(`Rejected report from ${church.name}: "${text.slice(0, 30)}"`, "warn");

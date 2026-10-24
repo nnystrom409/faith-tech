@@ -42,6 +42,13 @@ function createBot() {
     await respond(thread, message.author.userId, message.text ?? "", message.author.fullName);
   });
 
+  // Telegram marks /start, /reset, /help as bot commands, which Chat SDK routes
+  // here instead of onDirectMessage.
+  bot.onSlashCommand(async (event) => {
+    await clearOldKeyboard(event.user.userId);
+    await respond(event.channel, event.user.userId, `${event.command} ${event.text}`.trim(), event.user.fullName);
+  });
+
   bot.onAction("r", async (event) => {
     if (!event.thread || !event.value) return;
     await respond(event.thread as Thread, event.user.userId, event.value, event.user.fullName);
@@ -75,7 +82,7 @@ export const toPostable = (r: Reply) => {
   return Card({ children: [CardText(r.text), ...(oneRow ? [Actions(btns)] : btns.map((b) => Actions([b])))] });
 };
 
-async function respond(thread: Thread, userId: string, text: string, name?: string) {
+async function respond(thread: Pick<Thread, "post">, userId: string, text: string, name?: string) {
   try {
     const replies = await handle("telegram", userId, text, name);
     for (const r of replies) await thread.post(toPostable(r));
