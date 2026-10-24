@@ -19,12 +19,16 @@ export async function tg(method: string, body: unknown) {
   return res.json();
 }
 
+const LABELS: Record<string, string> = { YES: "✅ Yes", EDIT: "✏️ Edit", NO: "✏️ Change", STOP: "🚫 No thanks", HELP: "❓ Help" };
+
+// Buttons render as inline keyboards; the tap comes back as a callback_query
+// whose data is the same word a user could type, so typed replies still work.
 export async function sendReply(chatId: number | string, r: Reply) {
   return tg("sendMessage", {
     chat_id: chatId,
     text: r.text,
     reply_markup: r.buttons
-      ? { keyboard: [r.buttons.map((b) => ({ text: b }))], resize_keyboard: true, one_time_keyboard: true }
+      ? { inline_keyboard: [r.buttons.map((b) => ({ text: LABELS[b] ?? b, callback_data: b }))] }
       : { remove_keyboard: true },
   });
 }

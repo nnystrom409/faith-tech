@@ -39,7 +39,7 @@ const consentPrompt = (): Reply => ({
     "Welcome to the Global Baptism Event! 🌊\n\n" +
     "I help churches register and report baptisms. It takes about 2 minutes.\n\n" +
     "Can we send you event messages here? Reply YES to agree. You can reply STOP at any time.",
-  buttons: ["YES"],
+  buttons: ["YES", "STOP"],
 });
 
 const reportPrompt = (c: Church): Reply => ({
@@ -108,7 +108,7 @@ export async function handle(channel: string, id: string, rawText: string, name?
         if (existing) return [reportPrompt(existing)];
         return [{ text: "Thank you! What is your church's name?" }];
       }
-      return [{ text: "To continue, reply YES to receive event messages, or STOP to opt out.", buttons: ["YES"] }];
+      return [{ text: "To continue, reply YES to receive event messages, or STOP to opt out.", buttons: ["YES", "STOP"] }];
     }
 
     case "ask_church": {
