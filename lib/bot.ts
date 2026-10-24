@@ -443,6 +443,13 @@ export async function handle(channel: string, id: string, rawText: string, name?
         if (p.ok && (p.value === n || p.value === n / 10)) chosen = p.value;
       }
       if (chosen === undefined) return [{ text: t.checkBig(n, n / 10), buttons: [String(n / 10), t.rightBtn(n)] }];
+      const prev = church.reports?.[church.reports.length - 1];
+      if (prev && prev.count === chosen && Date.now() - Date.parse(prev.at) < DUPE_WINDOW_MS) {
+        user.draft.count = chosen;
+        user.step = "dupe_count";
+        await save(user);
+        return [{ text: t.dupe(chosen), buttons: t.dupeBtns(chosen) }];
+      }
       return record(user, church, chosen, lang);
     }
 
