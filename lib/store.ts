@@ -49,6 +49,7 @@ export type User = {
   stoppedAt?: string;
   draft: Draft;
   churchId?: string;
+  lastPrompt?: { text: string; buttons?: string[] };
 };
 
 export type Report = { count: number; at: string };

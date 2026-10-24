@@ -5,6 +5,7 @@
 // model, decides what is saved.
 import { getUser, saveUser, listChurches, getChurch, saveChurch, log, type User, type Church, type Lang, type Draft } from "./store";
 import { registerChurch, saveCount } from "./baptize";
+import { answerQuestion, looksLikeQuestion } from "./ai";
 
 export type Reply = { text: string; buttons?: string[] };
 
@@ -56,8 +57,16 @@ export function parseIntro(input: string): Draft {
   if (m) return { ...pastor(m[1]), church: clean(m[2]), city: clean(m[3]) };
   m = t.match(/soy\s+(.+?)\s+de\s+(.+?)\s+en\s+(.+)$/i);
   if (m) return { ...pastor(m[1]), church: clean(m[2]), city: clean(m[3]) };
+  // "Nick, Vintage Church, Santa Monica" or "Vintage Church, Nick, Santa Monica":
+  // the part that sounds like a church is the church, the last part is the city.
   const parts = t.split(/\s*[,;\n]\s*/).filter(Boolean);
-  if (parts.length === 3) return { church: parts[0], ...pastor(parts[1]), city: parts[2] };
+  if (parts.length === 3) {
+    const CHURCH = /church|iglesia|igreja|fellowship|chapel|capilla|ministr|parish|parroquia|templo|temple|assembly|asamblea|tabernacle|cathedral|catedral|congregation|comunidad|community|mission|misi[oó]n|bautista|baptist|cristian|christian|gospel|evangel/i;
+    const PERSON = /^(el |la )?(pastor|pastora|rev|reverend|father|padre|hermano|hermana|sister|brother)\b/i;
+    let ci = parts.slice(0, 2).findIndex((p) => CHURCH.test(p) && !PERSON.test(p));
+    if (ci < 0) ci = PERSON.test(parts[0]) ? 1 : 0;
+    return { church: parts[ci], ...pastor(parts[1 - ci]), city: parts[2] };
+  }
   return {};
 }
 
@@ -109,6 +118,7 @@ const S = {
     stop: "You're unsubscribed and won't get more messages. Reply START to rejoin.",
     help: "Send a number to report baptisms, RESET to register again, or STOP to unsubscribe.",
     error: "Sorry, something went wrong on our side. Please try again.",
+    noAnswer: "Good question! I've passed it to an organizer, who will reply here.",
   },
   es: {
     welcome:
@@ -156,6 +166,7 @@ const S = {
     stop: "Cancelaste la suscripción y no recibirás más mensajes. Responde START para volver.",
     help: "Envía un número para reportar bautismos, RESET para registrarte de nuevo, o STOP para salir.",
     error: "Lo siento, algo salió mal. Intenta de nuevo.",
+    noAnswer: "¡Buena pregunta! Se la pasé a un organizador, que te responderá aquí.",
   },
 };
 
@@ -187,7 +198,33 @@ const greetName = (lang: Lang, d: Draft) => {
   return d.leader.split(" ")[0];
 };
 
+// Side questions get a short AI answer, then the step they were on is asked
+// again. Everything else is the scripted flow below.
 export async function handle(channel: string, id: string, rawText: string, name?: string): Promise<Reply[]> {
+  const text = (rawText || "").trim();
+  const user = await getUser(`${channel}:${id}`);
+  const askable = user && !["new", "ask_language", "stopped"].includes(user.step) && user.lastPrompt;
+  if (askable && looksLikeQuestion(text) && !isExpectedAnswer(user, text)) {
+    const answer = await answerQuestion(text, user.lang ?? "en");
+    await log(`Question from ${user.name || "a contact"}${answer ? " answered by AI" : " sent to an organizer"}: "${text.slice(0, 40)}"`, answer ? "info" : "warn");
+    // Without an answer, still don't let a question be saved as a name or place.
+    return [{ text: answer ?? S[user.lang ?? "en"].noAnswer }, user.lastPrompt!];
+  }
+  const replies = await flow(channel, id, rawText, name);
+  const last = replies[replies.length - 1];
+  if (last) {
+    const u = await getUser(`${channel}:${id}`);
+    if (u) await saveUser({ ...u, lastPrompt: last });
+  }
+  return replies;
+}
+
+// A step that expects free text (names, places) shouldn't treat "Grace? Church" as a question.
+const isExpectedAnswer = (u: User, text: string) =>
+  !!u.lastPrompt?.buttons?.some((b) => is(text, b)) ||
+  (u.step === "ask_intro" && !!parseIntro(text).church) || (u.step === "registered" && parseCount(text).ok);
+
+async function flow(channel: string, id: string, rawText: string, name?: string): Promise<Reply[]> {
   const text = (rawText || "").trim();
   const cmd = text.replace(/^\//, "").split(/\s|@/)[0].toUpperCase();
   const key = `${channel}:${id}`;
@@ -272,7 +309,7 @@ export async function handle(channel: string, id: string, rawText: string, name?
       user.step = "ask_intro";
       await save(user);
       if (is(text, t.menuBtns[0], "register my church", "registrar mi iglesia", "register", "registrar")) return [{ text: t.intro }];
-      return handle(channel, id, text, name); // they went straight to the intro
+      return flow(channel, id, text, name); // they went straight to the intro
     }
 
     case "ask_intro": {
@@ -579,7 +616,10 @@ const ORG = {
   followup: (n: number) => `Does each of the ${n} people baptized have a named person from your church following up with them?`,
 };
 
-const pastorOf = (c: Church) => (c.leader ? `Pastor ${c.leader.split(" ")[0]}` : "Pastor");
+const pastorOf = (c: Church) => {
+  const first = c.leader?.split(" ")[0] ?? "";
+  return /pastor/i.test(c.role ?? "") ? `Pastor ${first}` : first || "friend";
+};
 
 export type OrganizerAction = "approve" | "readiness" | "report" | "followup";
 
@@ -627,6 +667,7 @@ export async function organizerMessage(churchId: string, action: OrganizerAction
     }
   }
   user.draft = {};
+  user.lastPrompt = replies[replies.length - 1];
   await saveUser(user);
   return { user, replies };
 }
