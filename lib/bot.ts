@@ -7,7 +7,7 @@ import { getUser, saveUser, listChurches, getChurch, saveChurch, log, type User,
 import { registerChurch, saveCount } from "./baptize";
 import { answerQuestion, looksLikeQuestion } from "./ai";
 
-export type Reply = { text: string; buttons?: string[] };
+export type Reply = { text: string; buttons?: string[]; link?: { label: string; url: string } };
 
 export const MAX_COUNT = 10_000;
 const DUPE_WINDOW_MS = 60 * 60 * 1000;
@@ -109,6 +109,7 @@ const S = {
     whatFix: "What should I change? For example: The church is Grace Fellowship Tacloban",
     updated: (v: string) => `Updated: ${v}. Everything else correct?`,
     yesFix: ["Yes", "Fix something"],
+    churchPage: "Open your church page",
     registered: (c: string) =>
       `You're registered! A regional organizer will review ${c}, usually within 2 days. I'll message you here.\n\nWhen you baptize, just send the number here, for example: "12 baptisms".`,
     dupeChurch: (c: string, city: string) =>
@@ -158,6 +159,7 @@ const S = {
     whatFix: "¿Qué debo cambiar? Por ejemplo: La iglesia es Luz del Valle Cusco",
     updated: (v: string) => `Actualizado: ${v}. ¿Todo lo demás está bien?`,
     yesFix: ["Sí", "Corregir algo"],
+    churchPage: "Ver la página de su iglesia",
     registered: (c: string) =>
       `¡Bienvenido! ${c} está registrada. Un organizador regional revisará su participación pronto.\n\nCuando bauticen, simplemente envíe el número aquí, por ejemplo: "12 bautismos".`,
     dupeChurch: (c: string, city: string) =>
@@ -426,7 +428,7 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
       user.step = "registered";
       user.draft = {};
       await save(user);
-      const out: Reply[] = [{ text: t.registered(c.name) }];
+      const out: Reply[] = [{ text: t.registered(c.name), link: { label: t.churchPage, url: churchUrl(c) } }];
       if (dupe) {
         await log(`Possible duplicate: ${c.name}, ${c.city} (flagged for review, not merged)`, "warn");
         out.unshift({ text: t.dupeChurch(dupe.name, dupe.city) });
@@ -611,7 +613,13 @@ async function flow(channel: string, id: string, rawText: string, name?: string)
 }
 
 // Messages an organizer sends from the dashboard (mockups E4, E5, E6, E7).
+// Each church's own page in the web app. Name and city ride along in the URL
+// so the page still shows them if this instance's memory doesn't have the church.
+export const churchUrl = (c: Church) =>
+  `${ORG.baseUrl}/church/${c.id}?${new URLSearchParams({ n: c.name, c: c.city, l: c.leader })}`;
+
 const ORG = {
+  baseUrl: "https://faith-tech-gold.vercel.app",
   packUrl: "https://faith-tech-gold.vercel.app/starter-pack",
   guideUrl: "https://faith-tech-gold.vercel.app/discipleship-guide",
   videoSummary:

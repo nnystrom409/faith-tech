@@ -1,7 +1,7 @@
 // Chat SDK wiring. The Telegram adapter handles webhooks, verification and
 // inline keyboards; our flow in lib/bot.ts decides what to say and save.
 // WhatsApp later: add createWhatsAppAdapter() under `adapters`.
-import { Chat, Card, CardText, Actions, Button, type Thread } from "chat";
+import { Chat, Card, CardText, Actions, Button, LinkButton, type Thread } from "chat";
 import { createTelegramAdapter } from "@chat-adapter/telegram";
 import { createMemoryState } from "@chat-adapter/state-memory";
 import { handle, errorReply, type Reply } from "./bot";
@@ -76,6 +76,7 @@ const label = (b: string) => {
 // user could type, so typed replies keep working. Short pairs share a row,
 // anything longer gets a row per button so Telegram doesn't truncate labels.
 export const toPostable = (r: Reply) => {
+  if (r.link && !r.buttons?.length) return Card({ children: [CardText(r.text), Actions([LinkButton({ url: r.link.url, label: `⛪ ${r.link.label}` })])] });
   if (!r.buttons?.length) return r.text;
   const btns = r.buttons.map((b) => Button({ id: "r", value: b, label: label(b) }));
   const oneRow = btns.length <= 2 && r.buttons.every((b) => b.length <= 14);
