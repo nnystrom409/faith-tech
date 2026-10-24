@@ -18,6 +18,8 @@ WhatsApp is the primary communication channel. Short forms collect structured in
 
 These assumptions need confirmation before live implementation.
 
+**Build stack:** Vercel AI SDK and Vercel Chat SDK (WhatsApp and SMS adapters). See [tech approach](tech-approach.md).
+
 ## Workflow
 
 ### 1. Establish participation requirements
