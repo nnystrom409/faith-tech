@@ -1,0 +1,37 @@
+/* Baptize The World admin dashboard. Scoped under .dash; data and markup stay as they are. */
+.dash { --bg:#F7F6F2; --card:#fff; --ink:#16160C; --muted:#5C5C55; --line:#E4E2DA; --accent:#B4410F; --ok:#17603A; --warn:#8A5A00;
+  min-height: 100vh; background: var(--bg); color: var(--ink); display: flex; flex-direction: column; }
+.dash-top { display: flex; align-items: center; gap: 16px; padding: 14px 32px; background: var(--ink); color: #fff; flex-wrap: wrap; }
+.dash-wm { height: 34px; width: auto; }
+.dash-div { width: 1px; height: 32px; background: #4A4A44; }
+.dash-tt { font-weight: 700; font-size: 16px; }
+.dash-ts { font-size: 12px; color: #CFCBBF; }
+.dash-nav { margin-left: auto; display: flex; gap: 6px; }
+.dash .dash-nav a { color: #fff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 8px 14px; border-radius: 10px; border: 1px solid #4A4A44; }
+.dash .dash-nav a:hover { background: #33332A; }
+.dash main { max-width: 1280px; width: 100%; padding: 24px 32px 40px; box-sizing: border-box; flex: 1; }
+.dash .sub { color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.dash-live { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 4px #E3F3E8; }
+.dash .grid { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 20px; }
+.dash .card { background: var(--card); border-color: var(--line); border-radius: 16px; padding: 16px 18px; }
+.dash .label { color: var(--muted); font-weight: 600; letter-spacing: .06em; }
+.dash .big { font-size: 34px; color: var(--ink); }
+.dash .hero { background: var(--ink); border-color: var(--ink); }
+.dash .hero .label { color: #CFCBBF; }
+.dash .hero .big { color: #FFB98A; font-size: 44px; }
+.dash .cols { gap: 20px; }
+.dash th, .dash td { border-color: var(--line); }
+.dash a { color: var(--accent); }
+.dash .tag { border-color: var(--warn); color: var(--warn); }
+.dash .ok { color: var(--ok); } .dash .warn { color: var(--warn); }
+.dash button { background: #fff; color: var(--ink); border-color: #CFCBBF; border-radius: 999px; font-weight: 600; }
+.dash button:hover:not(:disabled) { background: var(--ink); color: #fff; border-color: var(--ink); }
+.dash .feed li { border-color: var(--line); }
+.dash .feed time { color: var(--muted); }
+.dash-foot { display: flex; align-items: center; gap: 10px; padding: 16px 32px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.dash-ft { height: 18px; width: auto; margin-left: auto; }
+@media (max-width: 700px) {
+  .dash-top, .dash main, .dash-foot { padding-left: 16px; padding-right: 16px; }
+  .dash-div { display: none; }
+  .dash-nav { margin-left: 0; width: 100%; }
+}

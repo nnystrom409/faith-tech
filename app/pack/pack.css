@@ -73,3 +73,31 @@
 .pk-photo { position: relative; min-height: 96px; border-radius: 12px; border: 1.5px dashed #CFCBBF; display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--mut); font-size: 14px; font-weight: 600; cursor: pointer; }
 .pk-note { font-size: 12px; color: var(--mut); text-align: center; }
 .pk-toast { position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 16px; border-radius: 12px; font-size: 14px; z-index: 3; }
+
+/* Desktop: tabs become a sidebar, content flows into two columns. */
+@media (min-width: 900px) {
+  .pk { font-size: 16px; }
+  .pk-col { max-width: none; margin: 0; display: grid; grid-template-columns: 248px minmax(0, 1fr); grid-template-rows: auto 1fr; grid-template-areas: "top top" "nav body"; }
+  .pk-col.notabs { grid-template-columns: minmax(0, 1fr); grid-template-areas: "top" "body"; }
+  .pk-top { grid-area: top; padding: 14px 28px; }
+  .pk-tabs { grid-area: nav; position: sticky; top: 61px; align-self: start; height: calc(100vh - 61px); border-top: 0; border-right: 1px solid var(--line); padding: 20px 12px; box-sizing: border-box; }
+  .pk-tabs-in { max-width: none; grid-auto-flow: row; grid-auto-rows: auto; gap: 4px; }
+  .pk .pk-tab { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 44px; padding: 0 12px; border-radius: 10px; font-size: 15px; color: #4A4A44; }
+  .pk .pk-tab:hover { background: var(--soft); color: var(--ink); }
+  .pk .pk-tab.on { background: var(--accSoft); color: var(--accInk); }
+  .pk-body { grid-area: body; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; align-content: start; gap: 20px; padding: 32px 40px 48px; max-width: 1200px; width: 100%; box-sizing: border-box; }
+  .pk-col.notabs .pk-body { margin: 0 auto; max-width: 960px; }
+  .pk-body > :not(.pk-card) { grid-column: 1 / -1; }
+  .pk-card { padding: 18px 20px; }
+  .pk h1 { font-size: 34px; }
+  .pk-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .pk-body > .pk-tiles .pk-tile { min-height: 110px; }
+  .pk-card .pk-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pk-card.wide { grid-column: span 2; }
+  .pk-body > .pk-btn { justify-self: start; flex: none; padding: 0 28px; }
+  .pk-body > .pk-seg { justify-self: start; min-width: 420px; }
+  .pk-toast { bottom: 32px; }
+}
+@media (min-width: 1280px) {
+  .pk-body { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
