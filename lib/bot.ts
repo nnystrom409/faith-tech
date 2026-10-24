@@ -41,9 +41,9 @@ export function parseCount(input: string): CountResult {
   return { ok: true, value: n };
 }
 
-// "I'm Pastor Ramon Dela Cruz from Grace Fellowship in Tacloban"
+// "I'm Pastor Pablo Dela Cruz from Grace Fellowship in Tacloban"
 // "hola soy el pastor Rubén Quispe, mi iglesia es Luz del Valle en Cusco"
-// "Grace Fellowship, Ramon Dela Cruz, Tacloban"
+// "Grace Fellowship, Pablo Dela Cruz, Tacloban"
 // "vintage church" -> "Vintage Church". Text with any capitals is left as typed.
 const SMALL = new Set(["de", "del", "la", "las", "los", "el", "y", "of", "the", "and", "in", "en"]);
 export const nice = (s?: string) =>

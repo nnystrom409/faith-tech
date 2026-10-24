@@ -21,9 +21,14 @@ export default function Chat() {
     if (!t.trim() || !id) return;
     setMsgs((m) => [...m, { from: "me", text: t }]);
     setText("");
-    const r = await fetch("/api/simulate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, text: t }) });
-    const d = (await r.json()) as { replies: Omit<Msg, "from">[] };
-    setMsgs((m) => [...m, ...d.replies.map((x) => ({ from: "bot" as const, ...x }))]);
+    // A failed request shows a retry note instead of crashing the page.
+    let replies: Omit<Msg, "from">[] = [{ text: "Sorry, something went wrong. Please try again." }];
+    try {
+      const r = await fetch("/api/simulate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id, text: t }) });
+      const d = (await r.json()) as { replies?: Omit<Msg, "from">[] };
+      if (Array.isArray(d?.replies)) replies = d.replies.map((x) => ({ ...x, text: String(x?.text ?? "") }));
+    } catch {}
+    setMsgs((m) => [...m, ...replies.map((x) => ({ from: "bot" as const, ...x }))]);
   }
 
   const last = msgs[msgs.length - 1];
