@@ -4,7 +4,7 @@ import { Icon, Shell } from "../ui";
 const STEPS = [
   { what: "Said you're interested", note: "Scanned the lobby poster, 2 Nov", state: "done" },
   { what: "Connected with your church", note: "Liza from Grace Fellowship called you", state: "done" },
-  { what: "Preparing", note: "Conversation 2 of 2 with Pastor Ramon · Sun 25 Apr", state: "now" },
+  { what: "Preparing", note: "Conversation 2 of 2 with Pastor Pablo · Sun 25 Apr", state: "now" },
   { what: "Confirm you're coming", note: "We'll ask one week before", state: "" },
   { what: "Baptism day", note: "", state: "" },
   { what: "Next steps together", note: "", state: "" },
@@ -31,7 +31,7 @@ export default function Participant() {
 
       <div className="pk-card">
         <h2>What to expect</h2>
-        <p style={{ fontSize: 14 }}>Worship, a short testimony if you'd like to share one, then baptism in the river with Pastor Ramon. Family and friends are welcome.</p>
+        <p style={{ fontSize: 14 }}>Worship, a short testimony if you'd like to share one, then baptism in the river with Pastor Pablo. Family and friends are welcome.</p>
         <p className="pk-k">Bring</p>
         <p style={{ fontSize: 14 }}>A change of clothes, a towel, and someone you'd like to celebrate with.</p>
       </div>

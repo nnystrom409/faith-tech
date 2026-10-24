@@ -7,11 +7,11 @@ import { Icon, Shell } from "../ui";
 const TEAM_CODE = "GF7Q";
 
 const ROLES = [
-  { who: "RD", name: "Ramon Dela Cruz", role: "Event lead", pill: "Joined", cls: "s-ok", bg: "#16160C", fg: "#fff" },
+  { who: "PD", name: "Pablo Dela Cruz", role: "Event lead", pill: "Joined", cls: "s-ok", bg: "#16160C", fg: "#fff" },
   { who: "LM", name: "Liza Mercado", role: "Day-of contact · Welcome", pill: "Joined", cls: "s-ok", bg: "#DDE7F0", fg: "#1D4466" },
   { who: "JT", name: "Jun Tan · 1 more needed", role: "Baptism assistant", pill: "1 of 2", cls: "s-warn", bg: "#E3F3E8", fg: "#17603A" },
   { who: "?", name: "Calls each person within a week", role: "Follow-up lead", pill: "Open", cls: "s-help" },
-  { who: "RD", name: "Defaults to the event lead", role: "Reporting owner", pill: "Ramon", cls: "s-ok" },
+  { who: "PD", name: "Defaults to the event lead", role: "Reporting owner", pill: "Pablo", cls: "s-ok" },
 ];
 
 function qr(url: string) {

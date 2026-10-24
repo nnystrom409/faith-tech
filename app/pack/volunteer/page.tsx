@@ -6,7 +6,7 @@ import { Icon, Shell } from "../ui";
 const TODO = [
   { what: "Watch the welcome video", when: "" },
   { what: "Join the team chat", when: "" },
-  { what: "Walk the venue with Ramon", when: "Sat 8 May, 4 PM" },
+  { what: "Walk the venue with Pablo", when: "Sat 8 May, 4 PM" },
   { what: "Print the check-in list", when: "Ready the day before" },
 ];
 
@@ -17,7 +17,7 @@ export default function Volunteer() {
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <p className="pk-k">Hi Liza</p>
         <h1>You're on the welcome team</h1>
-        <p className="pk-mut">and you're the day-of contact. Pastor Ramon added you on 26 Oct.</p>
+        <p className="pk-mut">and you're the day-of contact. Pastor Pablo added you on 26 Oct.</p>
       </div>
 
       <div className="pk-card">
@@ -48,7 +48,7 @@ export default function Volunteer() {
 
       <div className="pk-card">
         <h2>Questions?</h2>
-        <p className="pk-mut">Ask Pastor Ramon in the bot. Pastoral questions go to him, not the portal.</p>
+        <p className="pk-mut">Ask Pastor Pablo in the bot. Pastoral questions go to him, not the portal.</p>
         <Link className="pk-btn2" href="/pack/help"><Icon name="send" size={18} />Message on Telegram</Link>
       </div>
       <p className="pk-note">Test data only · <Link href="/pack">Coordinator view</Link></p>

@@ -25,7 +25,7 @@ const SECTIONS: { name: string; items: Res[] }[] = [
 ];
 
 const ANNOUNCEMENT =
-  "On Pentecost Sunday, 16 May 2027, Grace Fellowship joins churches around the world for a day of baptisms. If you'd like to be baptized, or want to talk about it, scan the QR code in the lobby or speak to Pastor Ramon.";
+  "On Pentecost Sunday, 16 May 2027, Grace Fellowship joins churches around the world for a day of baptisms. If you'd like to be baptized, or want to talk about it, scan the QR code in the lobby or speak to Pastor Pablo.";
 
 export default function Resources() {
   const [lang, setLang] = useState("English");
