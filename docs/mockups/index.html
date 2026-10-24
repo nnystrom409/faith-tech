@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Church onboarding flow</title>
+<style>
+body{margin:0}
+a{color:#0a63d6}a:hover{color:#084fa8}
+.in{align-self:flex-start;max-width:78%;background:#e9e9eb;color:#111;padding:8px 12px;border-radius:18px 18px 18px 6px;font-size:14px;line-height:1.3}
+.out{align-self:flex-end;max-width:78%;background:#0a7cff;color:#fff;padding:8px 12px;border-radius:18px 18px 6px 18px;font-size:14px;line-height:1.3}
+.chips{align-self:flex-start;display:flex;flex-wrap:wrap;gap:6px;max-width:85%}
+.chip{border:1.5px solid #16160C;color:#16160C;background:#fff;border-radius:16px;padding:5px 11px;font-size:13px;font-weight:600;min-height:30px;font-family:inherit}
+.chip.on{background:#16160C;color:#fff}
+.meta{align-self:center;font-size:11px;color:#6b6b70;margin:4px 0}
+.tag{align-self:center;font-size:12px;color:#2c4a5e;background:#e7eef3;border-radius:10px;padding:5px 10px;text-align:center;max-width:85%}
+.row{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:4px 0;border-bottom:1px solid #ececf0}
+.k{color:#5a5a60}
+.warn{align-self:center;font-size:12px;color:#7a3e00;background:#fff1e0;border-radius:10px;padding:5px 10px;text-align:center;max-width:85%}
+.card{align-self:flex-start;width:78%;box-sizing:border-box;border:1px solid #dcdce2;border-radius:16px;overflow:hidden;background:#fff}
+.card-top{height:84px;background:#16160C;display:flex;align-items:center;justify-content:center}
+.card-body{padding:9px 12px;font-size:13px;line-height:1.35}
+.item{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:13px;padding:6px 0;border-bottom:1px solid #ececf0}
+.ok{font-size:11px;font-weight:600;color:#1d5e2e;background:#e3f3e6;border-radius:8px;padding:2px 7px;white-space:nowrap}
+.no{font-size:11px;font-weight:600;color:#4a4a50;background:#ececf0;border-radius:8px;padding:2px 7px;white-space:nowrap}
+.help{font-size:11px;font-weight:600;color:#7a3e00;background:#fff1e0;border-radius:8px;padding:2px 7px;white-space:nowrap}
+body{background:#eceef1;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:#16160C;padding:32px 24px}
+h1{font-size:28px;margin:0 0 4px} h2{font-size:20px;margin:40px 0 12px} p{margin:0;color:#4a4a50}
+.rowx{display:flex;flex-wrap:wrap;gap:32px} figure{margin:0} figcaption{font-size:13px;font-weight:600;margin:0 0 8px}
+</style></head><body>
+<h1>Church onboarding by text: demo screens</h1>
+<p>Static mockups for FaithTech SoCal Hackathon Track 1. All churches and people are made-up test data.</p>
+<h2>Full onboarding flow in English: first text to follow-up</h2>
+<div class="rowx">
+<figure lang="en"><figcaption>E1 · First text, language, opt-in</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Mon, Mar 1 · 9:12 AM · via church QR code</div>
+<div class="out">Hello, I heard about the Pentecost baptism day. How do we join?</div>
+<div class="in">Welcome! Baptize The World unites churches for a global day of baptism on Pentecost, May 16, 2027.</div>
+<div class="in">Which language do you prefer?</div>
+<div class="chips">
+<button class="chip">English</button>
+<button class="chip">Español</button>
+<button class="chip">Português</button>
+<button class="chip">Tagalog</button>
+<button class="chip">Other</button>
+</div>
+<div class="out">English</div>
+<div class="in">Joining takes about 3 minutes, right here in chat. May we send you event updates on this number? Reply STOP anytime to opt out.</div>
+<div class="chips">
+<button class="chip">Yes, send updates</button>
+<button class="chip">No thanks</button>
+</div>
+<div class="out">Yes, send updates</div>
+<div class="in">Thank you! What would you like to do?</div>
+<div class="chips">
+<button class="chip">Register my church</button>
+<button class="chip">Talk to an organizer</button>
+</div>
+<div class="tag">Contact created: language, number, source = QR, opt-in time</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+<figure lang="en"><figcaption>E2 · Register the church</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="out">Register my church</div>
+<div class="in">Great! In one message, tell me your church's name, your name, and your town or city.</div>
+<div class="out">I'm Pastor Ramon Dela Cruz from Grace Fellowship in Tacloban</div>
+<div class="tag">AI extracted: church, pastor, city · country from +63 number</div>
+<div class="in">Thanks, Pastor Ramon! What is your role at Grace Fellowship?</div>
+<div class="chips">
+<button class="chip">Lead pastor</button>
+<button class="chip">Event coordinator</button>
+<button class="chip">Other</button>
+</div>
+<div class="out">Lead pastor</div>
+<div class="in">How would your church like to take part?</div>
+<div class="chips">
+<button class="chip">Host our own event</button>
+<button class="chip">Join another church</button>
+<button class="chip">Help me decide</button>
+</div>
+<div class="out">Host our own event</div>
+<div class="in">Last one: an email address? Optional. Reply "skip" if you'd rather not.</div>
+<div class="out">ramon@example.org</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+<figure lang="en"><figcaption>E3 · Confirm details</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="in">Please check your details:</div>
+<div style="align-self: flex-start; width: 82%; box-sizing: border-box; background: #ffffff; border: 1px solid #dcdce2; border-radius: 16px; padding: 10px 14px;">
+<div class="row"><span class="k">Church</span><span>Grace Fellowship</span></div>
+<div class="row"><span class="k">Pastor</span><span>Ramon Dela Cruz</span></div>
+<div class="row"><span class="k">Role</span><span>Lead pastor</span></div>
+<div class="row"><span class="k">Location</span><span>Tacloban, Philippines</span></div>
+<div class="row"><span class="k">Time zone</span><span>Manila (GMT+8)</span></div>
+<div class="row"><span class="k">Taking part</span><span>Hosting</span></div>
+<div class="row" style="border-bottom: none;"><span class="k">Email</span><span>ramon@example.org</span></div>
+</div>
+<div class="chips">
+<button class="chip">Yes, that's right</button>
+<button class="chip">Fix something</button>
+</div>
+<div class="out">Fix something</div>
+<div class="in">What should I change?</div>
+<div class="out">The church is Grace Fellowship Tacloban</div>
+<div class="in">Updated: Grace Fellowship Tacloban. Everything else correct?</div>
+<div class="out">Yes</div>
+<div class="in">You're registered! A regional organizer will review your church, usually within 2 days. I'll message you here.</div>
+<div class="tag">Status: Registered (not yet Ready) · duplicate check passed · review task assigned</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+<figure lang="en"><figcaption>E4 · Approved, welcome pack, team invite</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Wed, Mar 3 · 10:02 AM</div>
+<div class="in">Good news, Pastor Ramon: Grace Fellowship Tacloban is confirmed as a host church!</div>
+<div class="card">
+<div class="card-top"><img src="assets/baptize-globe-192.png" alt="" style="width: 56px; height: 56px;"></div>
+<div class="card-body"><strong>Welcome video · 2 min</strong><br>Purpose, what to expect, preparing candidates, and caring for them after.</div>
+</div>
+<div class="in">Can't play video? Reply TEXT for a short written summary.</div>
+<div class="in">Your host starter pack: planning checklist, baptism prep guide, invite graphics, event-day guide and follow-up resources.</div>
+<div class="chips">
+<button class="chip">Open starter pack</button>
+<button class="chip">I need help</button>
+</div>
+<div class="in">Invite your team. Share this link with volunteers so they join Grace Fellowship and pick a role:</div>
+<div style="align-self: flex-start; max-width: 78%; background: #e9e9eb; padding: 9px 13px; border-radius: 18px 18px 18px 6px; font-size: 15px;"><a href="#">[Team invite link]</a></div>
+<div class="out">Got it, thank you!</div>
+<div class="tag">Pack v1 delivered · acknowledged by coordinator · team: 0 joined</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+<figure lang="en"><figcaption>E5 · Readiness checklist</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Mon, May 3 · 8:30 AM</div>
+<div class="in">Two weeks to go! Here's Grace Fellowship's readiness list:</div>
+<div style="align-self: flex-start; width: 84%; box-sizing: border-box; border: 1px solid #dcdce2; border-radius: 16px; padding: 8px 12px; background: #ffffff;">
+<div class="item"><span>Date, time and venue</span><span class="ok">Complete</span></div>
+<div class="item"><span>Event lead and day-of contact</span><span class="ok">Complete</span></div>
+<div class="item"><span>Volunteer roles</span><span class="ok">Complete</span></div>
+<div class="item"><span>Candidate preparation</span><span class="no">Not yet</span></div>
+<div class="item"><span>Safe water and supervision</span><span class="help">Need help</span></div>
+<div class="item"><span>Reporting owner</span><span class="ok">Complete</span></div>
+<div class="item" style="border-bottom: none;"><span>Follow-up owner</span><span class="no">Not yet</span></div>
+</div>
+<div class="in">Who will follow up with each person after they're baptized?</div>
+<div class="out">Sister Liza, our discipleship leader</div>
+<div class="in">Thanks! Follow-up owner: Sister Liza. You asked for help with water and supervision. An organizer will call you today.</div>
+<div class="chips">
+<button class="chip">See full list</button>
+<button class="chip">Talk to an organizer</button>
+</div>
+<div class="tag">Not Ready yet: 2 open essentials · support task assigned to regional organizer</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+<figure lang="en"><figcaption>E6 · Report baptisms</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Pentecost · Sun, May 16 · 3:40 PM</div>
+<div class="in">Happy Pentecost, Pastor Ramon! When you're ready, how many people were baptized today?</div>
+<div class="out">so many!! praise God</div>
+<div class="in">Praise God! Please send the number, for example "23".</div>
+<div class="out">230</div>
+<div class="warn">Unusual: 230 is far above the 25 expected last week</div>
+<div class="in">Just checking: did you mean 230, or 23?</div>
+<div class="chips">
+<button class="chip">23</button>
+<button class="chip">230 is right</button>
+</div>
+<div class="out">23</div>
+<div class="in">Recorded: 23 baptisms at Grace Fellowship Tacloban. Thank you for serving!</div>
+<div class="in">Would you like to share a story or photo? We'll ask permission before anything is published.</div>
+<div class="chips">
+<button class="chip">Share a story</button>
+<button class="chip">Not now</button>
+</div>
+<div class="tag">Live total +23 · source: coordinator text · awaiting Baptize review</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+<figure lang="en"><figcaption>E7 · Follow-up and opt-out</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Tue, May 18 · 10:00 AM</div>
+<div class="in">Thank you again for Sunday, Pastor Ramon! Two quick questions.</div>
+<div class="in">Does each of the 23 people baptized have a named person from your church following up with them?</div>
+<div class="chips">
+<button class="chip">Yes, all 23</button>
+<button class="chip">Some still need one</button>
+<button class="chip">Need help</button>
+</div>
+<div class="out">Yes, all 23</div>
+<div class="in">Wonderful. Would you like the 30-day discipleship guide to share with them?</div>
+<div class="chips">
+<button class="chip">Send the guide</button>
+<button class="chip">No thanks</button>
+</div>
+<div class="out">Send the guide</div>
+<div class="in">Sent. We'll check in again in 30 days. Reply STOP anytime to stop messages.</div>
+<div class="meta">Later</div>
+<div class="out">STOP</div>
+<div class="in">You're unsubscribed and won't get more messages. Reply START to rejoin.</div>
+<div class="tag">Report closed · follow-up confirmed by coordinator · opted out: reminders cancelled</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+</div>
+<h2>Quick demo: a pastor in Peru, in Spanish</h2>
+<div class="rowx">
+<figure lang="en"><figcaption>1 · Welcome and consent</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Today 1:02 PM · scanned church QR code</div>
+<div class="out">Hi! I want to register my church for Pentecost</div>
+<div class="in">Welcome! This number helps churches join the global day of baptism on Pentecost, May 16, 2027.</div>
+<div class="in">Which language would you like to use?</div>
+<div class="chips">
+<button class="chip on">English</button>
+<button class="chip">Español</button>
+<button class="chip">Português</button>
+<button class="chip">Français</button>
+<button class="chip">Other…</button>
+</div>
+<div class="in">Registering takes about 3 minutes. Can we send you event messages here? You can reply STOP at any time.</div>
+<div class="chips">
+<button class="chip on">Yes, message me</button>
+<button class="chip">No thanks</button>
+</div>
+<div class="out">Yes, message me</div>
+<div class="in">Thank you! What would you like to do?</div>
+<div class="chips">
+<button class="chip">Register my church</button>
+<button class="chip">Talk to an organizer</button>
+</div>
+<div class="tag">Opt-in saved with time and language before any outbound message</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Text Message</div>
+</div>
+</div>
+</figure>
+<figure lang="es"><figcaption>2 · Register in one message</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="in">¡Perfecto! Cuéntame de tu iglesia en un mensaje: nombre de la iglesia, tu nombre y tu ciudad.</div>
+<div class="out">hola soy el pastor Rubén Quispe, mi iglesia es Luz del Valle en Cusco</div>
+<div class="tag">AI extracted: church, pastor, city · country from +51 number</div>
+<div class="in">Gracias, Pastor Rubén. Tengo:<br>• Iglesia Luz del Valle<br>• Cusco, Perú</div>
+<div class="in">¿Cuál es tu rol en la iglesia?</div>
+<div class="chips">
+<button class="chip">Pastor principal</button>
+<button class="chip">Coordinador</button>
+<button class="chip">Otro</button>
+</div>
+<div class="out">Pastor principal</div>
+<div class="in">¿Quieren organizar su propio evento o unirse a otra iglesia?</div>
+<div class="chips">
+<button class="chip">Organizar</button>
+<button class="chip">Unirnos a otro</button>
+<button class="chip">Necesito ayuda</button>
+</div>
+<div class="out">Organizar</div>
+<div class="in">Último paso: ¿un correo electrónico? Es opcional. Escribe "saltar" si no tienes.</div>
+<div class="out">saltar</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Mensaje de texto</div>
+</div>
+</div>
+</figure>
+<figure lang="es"><figcaption>3 · Confirm and go live</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Hoy 1:07 PM</div>
+<div class="in">Por favor confirma tus datos:</div>
+<div style="align-self: flex-start; width: 82%; box-sizing: border-box; background: #ffffff; border: 1px solid #dcdce2; border-radius: 16px; padding: 10px 14px;">
+<div class="row"><span class="k">Iglesia</span><span>Luz del Valle</span></div>
+<div class="row"><span class="k">Pastor</span><span>Rubén Quispe</span></div>
+<div class="row"><span class="k">Rol</span><span>Pastor principal</span></div>
+<div class="row"><span class="k">Lugar</span><span>Cusco, Perú</span></div>
+<div class="row"><span class="k">Idioma</span><span>Español</span></div>
+<div class="row"><span class="k">Evento</span><span>Organizar</span></div>
+<div class="row" style="border-bottom: none;"><span class="k">Correo</span><span>—</span></div>
+</div>
+<div class="chips">
+<button class="chip">Sí, es correcto</button>
+<button class="chip">Corregir algo</button>
+</div>
+<div class="out">Sí, es correcto</div>
+<div class="in">¡Bienvenido, Pastor Rubén! Luz del Valle está registrada. Un organizador regional revisará su participación pronto.</div>
+<div class="in">Cuando bauticen, simplemente envíe el número aquí, por ejemplo: "12 bautismos".</div>
+<div class="tag">Status: Registered, not yet Ready · appears on the live dashboard · possible duplicates flagged for review, never auto-merged</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Mensaje de texto</div>
+</div>
+</div>
+</figure>
+<figure lang="es"><figcaption>4 · Report baptisms</figcaption>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; background: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif; color: #111111; border-radius: 44px; overflow: hidden; border: 1px solid #d8d8dc;">
+<div style="display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 40px 16px 8px; background: #f6f6f8; border-bottom: 1px solid #e2e2e6;">
+<img src="assets/baptize-globe-192.png" alt="Baptize The World globe" style="width: 48px; height: 48px; border-radius: 24px; object-fit: cover; background: #16160C;">
+<img src="assets/baptize-wordmark.svg" alt="Baptize The World" style="height: 14px; width: auto; margin-top: 2px;">
+</div>
+<div style="flex-grow: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; justify-content: flex-end; gap: 5px; padding: 10px 12px 12px;">
+<div class="meta">Pentecostés · 16 may 2027 · 4:20 PM</div>
+<div class="out">14 bautismos hoy, gloria a Dios!</div>
+<div class="in">¡Gloria a Dios! ¿Confirmas 14 bautismos para Luz del Valle hoy?</div>
+<div class="chips">
+<button class="chip">Sí, 14</button>
+<button class="chip">Corregir</button>
+</div>
+<div class="out">Sí, 14</div>
+<div class="in">Registrado: 14 bautismos. ¡Gracias por servir!</div>
+<div class="tag">Dashboard total updates · a Baptize team member reviews the count</div>
+<div class="meta">4:31 PM</div>
+<div class="out">14 bautismos</div>
+<div class="warn">Possible duplicate: same count from same number 11 min ago</div>
+<div class="in">Ya recibimos 14 bautismos hace unos minutos. ¿Son 14 más, o es el mismo reporte?</div>
+<div class="chips">
+<button class="chip">Es el mismo</button>
+<button class="chip">Son 14 más</button>
+</div>
+<div class="out">Es el mismo</div>
+<div class="in">Entendido, el total sigue en 14.</div>
+</div>
+<div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px 24px; border-top: 1px solid #e2e2e6;">
+<div style="flex-grow: 1; height: 36px; border: 1px solid #d0d0d5; border-radius: 18px; display: flex; align-items: center; padding: 0 14px; font-size: 15px; color: #8a8a90;">Mensaje de texto</div>
+</div>
+</div>
+</figure>
+</div>
+</body></html>
