@@ -2,7 +2,7 @@
 // Each item is its own record (bucket "readiness", id = "<churchId>.<key>"), so
 // two taps on different items, or a tap and a bot saveChurch, never overwrite each other.
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { listRecords, putRecord, type Church, type Lang } from "./store";
+import { getRecord, listRecords, putRecord, type Church, type Lang } from "./store";
 
 export type ItemStatus = "complete" | "not_yet" | "need_help" | "na";
 export type ItemKey = (typeof READINESS_ITEMS)[number]["key"];
@@ -39,8 +39,12 @@ export const statusOf = (r: Readiness, key: ItemKey): ItemStatus => r.items[key]
 type ItemRecord = { churchId: string; key: ItemKey; status: ItemStatus; by: "web" | "telegram"; at: string };
 
 export async function getReadiness(churchId: string): Promise<Readiness> {
-  const recs = (await listRecords<ItemRecord>("readiness", `${churchId}.`)).filter((x) => x.churchId === churchId);
-  const r: Readiness = { churchId, items: {} };
+  const [recs, legacy] = await Promise.all([
+    listRecords<ItemRecord>("readiness", `${churchId}.`).then((l) => l.filter((x) => x.churchId === churchId)),
+    // Checklists saved before per-item records were one document under the bare church id.
+    getRecord<Readiness>("readiness", churchId),
+  ]);
+  const r: Readiness = { churchId, items: { ...legacy?.items }, updatedAt: legacy?.updatedAt };
   for (const x of recs) {
     r.items[x.key] = { status: x.status, by: x.by, at: x.at };
     if (!r.updatedAt || x.at > r.updatedAt) r.updatedAt = x.at;
