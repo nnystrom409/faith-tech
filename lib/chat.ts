@@ -34,7 +34,7 @@ function createBot() {
 
 // A reply with buttons becomes a card; each button's value is the same word a
 // user could type, so typed replies keep working.
-const toPostable = (r: Reply) =>
+export const toPostable = (r: Reply) =>
   r.buttons?.length
     ? Card({ children: [CardText(r.text), Actions(r.buttons.map((b) => Button({ id: "r", value: b, label: b })))] })
     : r.text;
@@ -47,4 +47,13 @@ async function respond(thread: Thread, userId: string, text: string, name?: stri
     console.error(e);
     await thread.post(errorReply().text);
   }
+}
+
+// Organizer-initiated messages (dashboard buttons) go out through Chat SDK too,
+// so button taps on them come back through onAction.
+export async function sendToTelegramUser(userId: string, replies: Reply[]) {
+  const bot = getBot();
+  await bot.initialize();
+  const thread = await bot.openDM(userId);
+  for (const r of replies) await thread.post(toPostable(r));
 }
